@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gold_signal/signal_engine/services/signal_service.dart';
 import '../../signal_engine/model/timeframe.dart';
 import '../../signal_engine/provider/market_provider.dart';
 import '../../signal_engine/provider/signal_provider.dart';
 import '../../signal_engine/services/sr_service.dart';
-import '../../signal_engine/services/trend_service.dart';
 import '../widgets/trend_widget.dart';
 
 class DashboardPage extends ConsumerWidget {
@@ -15,6 +15,7 @@ class DashboardPage extends ConsumerWidget {
     final selectedTF = ref.watch(selectedTimeframeProvider);
     final candlesAsync = ref.watch(binanceCandlesProvider);
     final signalAsync = ref.watch(signalProvider);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Dashboard')),
       body: SizedBox(
@@ -36,95 +37,91 @@ class DashboardPage extends ConsumerWidget {
                   }).toList(),
                   onChanged: (value) {
                     ref.read(selectedTimeframeProvider.notifier).state = value!;
-                    // Trigger signal refresh
                     ref.invalidate(binanceCandlesProvider);
                     ref.invalidate(signalProvider);
                   },
                 ),
                 const SizedBox(width: 50),
-                // Manual Refresh Button
                 ElevatedButton(
-                    onPressed: () {
-                      ref.invalidate(binanceCandlesProvider);
-                      ref.invalidate(signalProvider);
-                    },
-                    child: const Text("Refresh"))
+                  onPressed: () {
+                    ref.invalidate(binanceCandlesProvider);
+                    ref.invalidate(signalProvider);
+                  },
+                  child: const Text("Refresh"),
+                )
               ],
             ),
 
-            // 2️⃣ Manual Account Balance Input
-            // Padding(
-            //   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            //   child: Row(
-            //     children: [
-            //       const Text("Balance: "),
-            //       SizedBox(
-            //         width: 100,
-            //         child: TextFormField(
-            //           initialValue: account.balance.toStringAsFixed(0),
-            //           keyboardType: TextInputType.number,
-            //           onFieldSubmitted: (val) {
-            //             final balance = double.tryParse(val);
-            //             if (balance != null) {
-            //               ref
-            //                   .read(accountProvider.notifier)
-            //                   .update(balance, account.riskPercent);
-            //             }
-            //           },
-            //         ),
-            //       ),
-            //       const SizedBox(width: 20),
-            //       const Text("Risk %: "),
-            //       SizedBox(
-            //         width: 80,
-            //         child: TextFormField(
-            //           initialValue: account.riskPercent.toString(),
-            //           keyboardType: TextInputType.number,
-            //           onFieldSubmitted: (val) {
-            //             final risk = double.tryParse(val);
-            //             if (risk != null) {
-            //               ref
-            //                   .read(accountProvider.notifier)
-            //                   .update(account.balance, risk);
-            //             }
-            //           },
-            //         ),
-            //       ),
-            //     ],
-            //   ),
-            // ),
-
-            // 3️⃣ Candles & Signal Display
+            // 2️⃣ Candles & Signal Display
             Expanded(
               child: candlesAsync.when(
                 data: (candles) {
-                  // Detect Support/Resistance
                   final srService = SupportResistanceService();
-                  final levels = srService.detectLevels(candles);
-                  // Detect Trend
-                  final trendService = TrendService();
-                  final trendValues = trendService.calculateTrend(candles);
+                  final levels = candles.isNotEmpty
+                      ? srService.detectLevels(candles)
+                      : [0.0, 0.0];
 
+                  final signalService = SignalService();
+
+                  // Trend display
+                  String trendText = candles.isNotEmpty
+                      ? signalService.detectTrend(candles)
+                      : 'No Trend';
+                  // ignore: unused_local_variable
+                  List<double> trendValues = candles.isNotEmpty
+                      ? signalService.calculateTrend(candles)
+                      : [];
+
+                  // RSI
+                  double rsiValue = candles.isNotEmpty
+                      ? signalService.calculateRSI(candles)
+                      : 50.0;
+                  final signal = signalAsync.asData?.value;
                   return Column(
                     children: [
+                      // Trend Chart
                       SizedBox(
-                          width: double.infinity,
-                          height: 200,
-                          child: Container(
-                              decoration: BoxDecoration(
-                                  color: trendService.isUptrend(candles)
-                                      ? Colors.green[100]
-                                      : trendService.isDowntrend(candles)
-                                          ? Colors.red[100]
-                                          : Colors.grey[200],
-                                  border: Border.all(color: Colors.grey)),
-                              child: TrendWidget(trend: trendValues))),
-                      // Trend Display
+                        width: double.infinity,
+                        height: 200,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: candles.isNotEmpty
+                                ? signalService.isBullish(candles)
+                                    ? Colors.green[100]
+                                    : signalService.isBearish(candles)
+                                        ? Colors.red[100]
+                                        : Colors.grey[200]
+                                : Colors.grey[200],
+                            border: Border.all(color: Colors.grey),
+                          ),
+                          child: TrendWidget(
+                            trend: candles,
+                            supportLevel: levels[0],
+                            resistanceLevel: levels[1],
+                            isBuySignal: signal?.isBuy ?? false,
+                            isHoldSignal: signal?.isHold ?? false,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      // Trend Text
                       Text(
-                        trendService.detectTrend(candles),
+                        trendText,
                         style: const TextStyle(
                             fontSize: 20, fontWeight: FontWeight.bold),
                       ),
+
+                      const SizedBox(height: 8),
+
+                      // RSI Display
+                      Text(
+                        'RSI: ${rsiValue.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+
                       const SizedBox(height: 8),
 
                       // Support/Resistance Display
@@ -135,19 +132,23 @@ class DashboardPage extends ConsumerWidget {
                             fontWeight: FontWeight.bold,
                             color: Colors.blue),
                       ),
+
                       const SizedBox(height: 8),
 
                       // Signal Card
                       Expanded(
                         child: signalAsync.when(
                           data: (signal) {
-                            if (signal == null) {
+                            // ✅ Treat "Hold" as no signal
+                            //final hasSignal = signal != null && signal.isHold != true;
+
+                            if (signal.isHold) {
                               return const Card(
                                 color: Colors.grey,
                                 margin: EdgeInsets.all(16),
                                 child: Center(
                                   child: Text(
-                                    'No Signal, Trend is Unclear',
+                                    'No Signal, Trend is Sideways',
                                     style: TextStyle(
                                         fontSize: 24,
                                         fontWeight: FontWeight.bold,
@@ -196,7 +197,7 @@ class DashboardPage extends ConsumerWidget {
                                               fontSize: 18,
                                               color: Colors.white)),
                                       Text(
-                                          "RR: ${signal.riskReward.toStringAsFixed(2)}",
+                                          "RR: 1:${signal.riskReward.toStringAsFixed(0)}",
                                           style: const TextStyle(
                                               fontSize: 18,
                                               color: Colors.white)),
@@ -218,20 +219,9 @@ class DashboardPage extends ConsumerWidget {
                 error: (e, st) => Text('Error loading candles: $e'),
               ),
             ),
-
-            //4️⃣ Refresh Button
-            // FloatingActionButton(
-            //   onPressed: () {
-            //     ref.invalidate(binanceCandlesProvider);
-            //     ref.invalidate(signalProvider);
-            //   },
-            //   child: const Icon(Icons.refresh),
-            // ),
           ],
         ),
       ),
     );
   }
-
-  /// Simple EMA trend detection
 }

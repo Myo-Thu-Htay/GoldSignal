@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:gold_signal/account/trade.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

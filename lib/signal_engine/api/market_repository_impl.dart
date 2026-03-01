@@ -1,4 +1,5 @@
 import 'package:gold_signal/signal_engine/api/binance_api_service.dart';
+import 'package:gold_signal/signal_engine/model/multi_timeframe_model.dart';
 
 import '../model/candle.dart';
 import '../model/timeframe.dart';
@@ -6,6 +7,7 @@ import 'forex_api_service.dart';
 
 abstract class MarketRepository {
   Future<List<Candle>> getCandles(Timeframe tf, {bool useBinance = true});
+  Future<MultiTimeFrameModel> getBinanceCandles();
 }
 
 class MarketRepositoryImpl implements MarketRepository {
@@ -24,6 +26,14 @@ class MarketRepositoryImpl implements MarketRepository {
     } else {
       return await apiService.fetchCandles(tf);
     }
+  }
+
+  @override
+  Future<MultiTimeFrameModel> getBinanceCandles() async {
+    final h1Candles = await binanceApiService.getCandles('1h');
+    final m15Candles = await binanceApiService.getCandles('15m');
+    final m5Candles = await binanceApiService.getCandles('5m');
+    return MultiTimeFrameModel(h1: h1Candles, m15: m15Candles, m5: m5Candles);
   }
 
   String mapTimeFrameToBinance(Timeframe tf) {

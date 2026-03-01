@@ -14,4 +14,26 @@ class Candle {
     required this.close,
     required this.volume,
   });
+
+  factory Candle.fromJson(Map<String, dynamic> json) {
+    return Candle(
+      time: DateTime.fromMillisecondsSinceEpoch(json['time']),
+      open: (json['open'] as num).toDouble(),
+      high: (json['high'] as num).toDouble(),
+      low: (json['low'] as num).toDouble(),
+      close: (json['close'] as num).toDouble(),
+      volume: (json['volume'] as num).toDouble(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'time': time.millisecondsSinceEpoch,
+      'open': open,
+      'high': high,
+      'low': low,
+      'close': close,
+      'volume': volume,
+    };
+  }
 }

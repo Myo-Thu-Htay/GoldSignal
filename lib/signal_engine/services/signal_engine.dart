@@ -1,82 +1,138 @@
-import '../model/candle.dart';
+import '../model/multi_timeframe_model.dart';
 import 'atr_service.dart';
 import 'pattern_detector.dart';
+import 'signal_service.dart';
 import 'sr_service.dart';
-import 'trend_service.dart';
 import 'volume_filter.dart';
 import '../model/trade_signal.dart';
 import 'risk_service.dart';
 
 class SignalEngine {
-  final TrendService _trendService = TrendService();
   final AtrService _atrService = AtrService();
   final PatternDetector _patternDetector = PatternDetector();
   final VolumeFilter _volumeFilter = VolumeFilter();
   final RiskService _riskService = RiskService();
+  final SupportResistanceService srService = SupportResistanceService();
+  final SignalService _signalService = SignalService();
+  static const int emaPeriod = 50;
 
   TradeSignal evaluate(
-      List<Candle> candles, double accountBalance, double riskPercent) {
-    if (candles.length < 50) {
+      MultiTimeFrameModel candles, double accountBalance, double riskPercent) {
+    if (candles.h1.length < emaPeriod ||
+        candles.m15.length < emaPeriod ||
+        candles.m5.length < emaPeriod) {
       throw Exception('Not enough candles for analysis');
     }
 
-    // Pattern detection
-    final bullishScore = _patternDetector.detectBullishEngulfing(candles);
-    final bearishScore = _patternDetector.detectBearishEngulfing(candles);
-    final patternScore = bullishScore - bearishScore;
+    // ===Trend analysis===
+    final signal = _signalService.generateSignal(candles);
+    final isUp = _signalService.isBullish(candles.h1);
+    final isDown = _signalService.isBearish(candles.h1);
+    final confidence = _signalService.calculateConfidence(candles);
 
-    // Trend detection
-    final isUp = _trendService.isUptrend(candles);
-    final isDown = _trendService.isDowntrend(candles);
-    final trendScore = isUp
-        ? 1
-        : isDown
-            ? -1
-            : 0;
+    if (!isUp && !isDown) {
+      return holdSignal(confidence); // Low confidence hold
+    }
 
-    // Volume confirmation
-    final volumeConfirmed = _volumeFilter.confirm(candles);
+    // ===Pattern detection===
+    final bullishPattern =
+        _patternDetector.detectBullishEngulfing(candles.m15) > 0;
+    final bearishPattern =
+        _patternDetector.detectBearishEngulfing(candles.m15) > 0;
 
-    // Final confidence: 0–1
-    final confidence = ((patternScore / 100).clamp(0.0, 1.0) * 0.6 +
-            (volumeConfirmed ? 0.3 : 0.0) +
-            (trendScore != 0 ? 0.1 : 0.0))
-        .clamp(0.0, 1.0);
-    // Resistance/Support detection
-    final srService = SupportResistanceService();
-    final levels = srService.detectLevels(candles);
-    final entry =
-        candles.last.close; // Use resistance as entry for buy, support for sell
-    final atr = _atrService.calculateATR(candles, 14);
-    final sl = isUp ? entry - atr * 1.5 : entry + atr * 1.5;
-    final tp = isUp ? entry + atr * 1.5 : entry - atr * 1.5;
+    // ===Volume filter===
+    final volumeConfirm = _volumeFilter.confirm(candles.m15);
 
-    // Lot size
-    final lot = _riskService.calculateLotSize(
-      balance: accountBalance,
-      entry: entry,
-      riskPercent: riskPercent,
-      stopLoss: sl,
-    );
+    // === ATR Filter ===
+    final atr = _atrService.calculateATR(candles.m15, 14);
+    if (atr < 0) {
+      return holdSignal(confidence); // Higher volatility, be cautious
+    }
+    // Avoid low volatility
+    if (atr < 1.0) return holdSignal(confidence);
 
-    // Decide buy/sell based on trend
-    final isBuy = isUp ||
-        (trendScore == 0 && bullishScore > bearishScore) ||
-        entry - levels[0] < levels[1] - entry;
+    // === BUY Condition ===
+    if ((isUp && bullishPattern && volumeConfirm) &&
+        (signal == 'Strong Buy' || signal == 'Buy')) {
+      final levels = srService.detectLevels(candles.m15);
+      final support = levels[0];
+      final resistance = levels[1];
+      final currentPrice = candles.m5.last.close;
+      // Avoid buying directly into resistance
+      if ((resistance - currentPrice) < atr * 1.2) {
+        return holdSignal(confidence);
+      }
+      // prefer entry near support (pullback)
+      if ((currentPrice - support) > atr * 1.5) {
+        return holdSignal(confidence);
+      }
+      final entry = currentPrice;
+      final sl = support - atr * 0.5; // SL below support
+      final tp = resistance - 3; // TP below resistance for avoid pullback
+      final lot = _riskService.calculateLotSize(
+        balance: accountBalance,
+        entry: entry,
+        riskPercent: riskPercent,
+        stopLoss: sl,
+      );
+      return TradeSignal(
+        isBuy: true,
+        isHold: false,
+        entry: entry,
+        stopLoss: sl,
+        takeProfit: tp,
+        lotSize: lot,
+        confidence: confidence,
+      );
+    }
 
-    return TradeSignal(
-      isBuy: isBuy,
-      entry: entry,
-      stopLoss: sl,
-      takeProfit: tp,
-      lotSize: lot,
-      confidence: confidence,
-    );
+    // === SELL Condition ===
+    if ((isDown && bearishPattern && volumeConfirm) &&
+        (signal == 'Strong Sell' || signal == 'Sell')) {
+      final levels = srService.detectLevels(candles.m15);
+      final support = levels[0];
+      final resistance = levels[1];
+      final currentPrice = candles.m5.last.close;
+      // Avoid Selling ditectly into support
+      if ((currentPrice - support) < atr * 1.2) {
+        return holdSignal(0.45);
+      }
+      // prefer entry near resistance (pullback)
+      if ((resistance - currentPrice) > atr * 1.5) {
+        return holdSignal(0.5);
+      }
+      final entry = currentPrice;
+      final tp = support + 3;
+      final sl = resistance + atr * 0.5;
+      final lot = _riskService.calculateLotSize(
+        balance: accountBalance,
+        entry: entry,
+        riskPercent: riskPercent,
+        stopLoss: sl,
+      );
+      return TradeSignal(
+        isBuy: false,
+        isHold: false,
+        entry: entry,
+        stopLoss: sl,
+        takeProfit: tp,
+        lotSize: lot,
+        confidence: confidence,
+      );
+    }
+
+    return holdSignal(confidence);
   }
 
-  // Helper trend functions
-  bool isUptrend(List<Candle> candles) => _trendService.isUptrend(candles);
-  bool isDowntrend(List<Candle> candles) => _trendService.isDowntrend(candles);
-  bool isSideways(List<Candle> candles) =>
-      !isUptrend(candles) && !isDowntrend(candles);
+  // Helper holdSignal function
+  TradeSignal holdSignal(double confidence) {
+    return TradeSignal(
+        isBuy: false,
+        isHold: true,
+        entry: 0.0,
+        stopLoss: 0.0,
+        takeProfit: 0.0,
+        lotSize: 0.0,
+        confidence: confidence);
+  }
 }

@@ -33,7 +33,7 @@ class PortfolioPage extends ConsumerWidget {
           Expanded(
             flex: 2,
             child: Card(
-              color: Colors.blueAccent.withOpacity(0.1),
+              color: Colors.blueAccent,
               margin: const EdgeInsets.all(16),
               child: EquityCurveWidget(
                   equityCurve: equityCurve), // Draw equity curve

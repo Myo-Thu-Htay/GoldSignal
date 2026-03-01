@@ -70,12 +70,16 @@ class _SimpleRouterDelegate extends RouterDelegate<Uri>
             notifyListeners();
           }
           return true;
-        });
+        },
+        );
   }
+
 
   @override
   Future<void> setNewRoutePath(configuration) async {
-    _currentUri = configuration.path.isEmpty ? Uri(path: AppRouter.dashboard) : configuration;
+    _currentUri = configuration.path.isEmpty
+        ? Uri(path: AppRouter.dashboard)
+        : configuration;
   }
 }
 

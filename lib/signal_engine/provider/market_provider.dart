@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:gold_signal/signal_engine/api/binance_api_service.dart';
 import '../api/forex_api_service.dart';
 import '../model/candle.dart';
+import '../model/multi_timeframe_model.dart';
 import '../model/timeframe.dart';
 import '../api/market_repository_impl.dart';
 
@@ -25,3 +27,8 @@ final finageCandlesProvider = FutureProvider<List<Candle>>((ref) async {
   final tf = ref.watch(selectedTimeframeProvider);
   return await repository.getCandles(tf,useBinance: false);
 });
+final getBinanceCandles = FutureProvider<MultiTimeFrameModel>((ref) async {
+  final repository = ref.read(marketRepositoryProvider);
+  return await repository.getBinanceCandles();
+});
+
