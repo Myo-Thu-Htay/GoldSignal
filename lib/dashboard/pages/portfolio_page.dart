@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../signal_engine/provider/equity_curve_provider.dart';
 import '../provider/trade_history_provider.dart';
 import '../widgets/equity_curve_widget.dart';
-import '../widgets/trade_widget.dart';
 
 class PortfolioPage extends ConsumerWidget {
   const PortfolioPage({super.key});
@@ -28,12 +27,12 @@ class PortfolioPage extends ConsumerWidget {
       ),
       body: Column(
         children: [
-          const AddTradeWidget(), // Manual trade input
+          //const AddTradeWidget(), // Manual trade input
           const SizedBox(height: 16),
           Expanded(
             flex: 2,
             child: Card(
-              color: Colors.blueAccent,
+              color: Colors.blueGrey.shade100,
               margin: const EdgeInsets.all(16),
               child: EquityCurveWidget(
                   equityCurve: equityCurve), // Draw equity curve

@@ -8,15 +8,17 @@ class BinanceFuturesSocketService {
   void connect({
     required String symbol,
     required String interval,
-    required Function(Candle candle, bool isClosed) onUpdate,
+    required Function(Candle candle) onUpdate,
   }) {
     final url =
         'wss://fstream.binance.com/ws/${symbol.toLowerCase()}@kline_$interval';
-
+    // final url =
+    //     'ws://127.0.0.1:8080';
     _channel = WebSocketChannel.connect(Uri.parse(url));
 
     _channel.stream.listen((message) {
       final data = jsonDecode(message);
+      //print('Received data: $data');
       final k = data['k'];
 
       final candle = Candle(
@@ -28,9 +30,9 @@ class BinanceFuturesSocketService {
         volume: double.parse(k['v']),
       );
 
-      final bool isClosed = k['x'];
+      //final bool isClosed = k['x'];
 
-      onUpdate(candle, isClosed);
+      onUpdate(candle);
     });
   }
 

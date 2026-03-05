@@ -1,24 +1,19 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gold_signal/signal_engine/api/binance_futures_socket.dart';
 import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
-
 import '../../signal_engine/model/candle.dart';
+import '../../signal_engine/services/signal_service.dart';
 
 class TrendWidget extends StatefulWidget {
   final List<Candle> trend;
-  final double supportLevel;
-  final double resistanceLevel;
   final bool? isBuySignal;
   final bool? isHoldSignal;
 
   const TrendWidget(
-      {super.key,
-      required this.trend,
-      required this.supportLevel,
-      required this.resistanceLevel,
-      this.isBuySignal,
-      this.isHoldSignal});
+      {super.key, required this.trend, this.isBuySignal, this.isHoldSignal});
 
   @override
   State<TrendWidget> createState() => _TrendWidgetState();
@@ -27,6 +22,14 @@ class TrendWidget extends StatefulWidget {
 class _TrendWidgetState extends State<TrendWidget> {
   late BinanceFuturesSocketService _socketService;
   late List<Candle> _candles;
+  late List<Candle> sortedTrend;
+  late Candle? lastCandle;
+  late double lastClose;
+  final signalService = SignalService();
+  late double volume;
+  late List<Candle> ma10;
+  late double rsiValue;
+  ChartSeriesController? _seriesController;
 
   @override
   void initState() {
@@ -36,186 +39,167 @@ class _TrendWidgetState extends State<TrendWidget> {
     _socketService.connect(
       symbol: 'xauusdt',
       interval: '1m',
-      onUpdate: onCandleUpdate,
+      onUpdate: _startAutoUpdate,
     );
   }
 
-  void onCandleUpdate(Candle candle, bool isClosed) {
-      if (isClosed) {
-        setState(() {
-         if (_candles.isNotEmpty && _candles.last.time == candle.time) {
-            _candles[_candles.length - 1] = candle; // Update last candle
-          } else {
-            _candles.add(candle); // Add new candle
-          }
-          if (_candles.length > 200) {
-            _candles.removeAt(0); // Keep only the latest 200 candles
-          }
-        });
+  Timer? timer;
+  void _startAutoUpdate(Candle candle) {
+    timer = Timer.periodic(const Duration(milliseconds: 16), (timer) {
+      onCandleUpdate(candle);
+    });
+  }
+
+  void onCandleUpdate(Candle candle) {
+    final list = [..._candles];
+    if (list.isNotEmpty && list.last.time == candle.time) {
+      // Show only the last 300 candles for better performance
+
+      list[list.length - 1] = candle;
+      if (list.length > 200) {
+        list.removeAt(0);
+        list[list.length - 1] = candle; // Update last candle
+        _seriesController?.updateDataSource(
+          updatedDataIndexes: [list.length - 1],
+          removedDataIndexes: [0],
+        );
       }
-    if (isClosed) {
-      setState(() {
-        _candles.add(candle);
-        if (_candles.length > 200) {
-          _candles.removeAt(0); // Keep only the latest 200 candles
-        }
-      });
     }
+    _candles = list;
   }
 
   @override
   void dispose() {
     _socketService.dispose();
+    timer?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final List<Candle> sortedTrend = widget.trend.length > 200
-        ? widget.trend.sublist(widget.trend.length - 200)
-        : widget.trend; // Show only the last 50 candles for better performance
-    final lastCandle = sortedTrend.isNotEmpty ? sortedTrend.last : null;
-    final lastClose = lastCandle?.close ?? 0.0;
-    return Padding(
-      padding: const EdgeInsets.all(1),
-      child: SizedBox(
-        height: 300,
-        child: SfCartesianChart(
-          
-          annotations: [
-            widget.isHoldSignal == true
-                ? CartesianChartAnnotation(
-                    widget: Text(''),
-                    coordinateUnit: CoordinateUnit.point,
-                    x: lastCandle?.time,
-                    y: lastCandle?.close,
-                  )
-                : CartesianChartAnnotation(
-                    widget: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: widget.isBuySignal! ? Colors.green : Colors.red,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        widget.isBuySignal! ? 'Buy Signal' : 'Sell Signal',
-                        style:
-                            const TextStyle(color: Colors.white, fontSize: 12),
+    return Consumer(
+      builder: (BuildContext context, WidgetRef ref, Widget? child) {
+        sortedTrend = widget.trend.length > 300
+            ? widget.trend.sublist(widget.trend.length - 300)
+            : widget.trend;
+        lastCandle = sortedTrend.isNotEmpty ? sortedTrend.last : null;
+        lastClose = lastCandle?.close ?? 0.0;
+        volume = lastCandle?.volume ?? 0.0;
+        ma10 = signalService.calculateMA(sortedTrend, 10);
+        rsiValue = sortedTrend.isNotEmpty
+            ? signalService.calculateRSI(sortedTrend)
+            : 50.0;
+
+        return Column(
+          children: [
+            Expanded(
+              flex: 3,
+              child: SfCartesianChart(
+                annotations: [
+                  CartesianChartAnnotation(
+                    region: AnnotationRegion.chart,
+                    widget: Text(
+                      '                    ---\$${lastClose.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        color: lastCandle!.close >= lastCandle!.open
+                            ? Colors.green
+                            : Colors.red,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                     coordinateUnit: CoordinateUnit.point,
-                    x: lastCandle?.time,
-                    y: lastCandle?.close,
+                    x: lastCandle!.time,
+                    y: lastCandle!.close,
+                  )
+                ],
+                primaryXAxis: DateTimeAxis(
+                  intervalType: DateTimeIntervalType.minutes,
+                  dateFormat: DateFormat('dd/MM/yyyy HH:mm'),
+                  majorGridLines: MajorGridLines(width: 0),
+                  edgeLabelPlacement: EdgeLabelPlacement.shift,
+                ),
+                primaryYAxis: NumericAxis(
+                  numberFormat: NumberFormat.simpleCurrency(decimalDigits: 2),
+                  opposedPosition: true,
+                  majorGridLines: MajorGridLines(width: 0.5),
+                  plotBands: [
+                    PlotBand(
+                      isVisible: true,
+                      start: lastClose,
+                      end: lastClose,
+                      borderWidth: 1,
+                      dashArray: [6, 4],
+                    ),
+                    PlotBand(
+                      isVisible: true,
+                      start: lastClose + 0.5,
+                      end: lastClose + 0.5,
+                      borderWidth: 1,
+                      dashArray: [6, 4],
+                    ),
+                  ],
+                ),
+                zoomPanBehavior: ZoomPanBehavior(
+                  enablePinching: true,
+                  enablePanning: true,
+                  enableDoubleTapZooming: true,
+                  zoomMode: ZoomMode.xy,
+                ),
+                series: <CartesianSeries<Candle, DateTime>>[
+                  CandleSeries<Candle, DateTime>(
+                    initialSelectedDataIndexes: [sortedTrend.length - 100],
+                    onRendererCreated: (controller) {
+                      _seriesController = controller;
+                    },
+                    animationDuration: 0,
+                    dataSource: sortedTrend,
+                    enableSolidCandles: true,
+                    enableTooltip: true,
+                    xValueMapper: (value, index) => value.time,
+                    lowValueMapper: (value, index) => value.low,
+                    highValueMapper: (value, index) => value.high,
+                    openValueMapper: (value, index) => value.open,
+                    closeValueMapper: (value, index) => value.close,
+                    //width: 0.5,
+                    showIndicationForSameValues: true,
+                    spacing: 1,
                   ),
-            CartesianChartAnnotation(
-              widget: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.orange,
-                  borderRadius: BorderRadius.circular(4),
+                ],
+              ),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(10.0),
+                  child: Text(
+                    'RSI: ${rsiValue.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, color: Colors.black),
+                  ),
                 ),
-                child: Text(
-                  lastClose.toStringAsFixed(2),
-                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(
+                    'MA(10): ${ma10.last.close.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, color: Colors.black87),
+                  ),
                 ),
-              ),
-              coordinateUnit: CoordinateUnit.point,
-              x: lastCandle?.time,
-              y: lastCandle?.close,
-              horizontalAlignment: ChartAlignment.far,
-              verticalAlignment: ChartAlignment.near,
-            )
-          ],
-          primaryXAxis: DateTimeAxis(
-            intervalType: DateTimeIntervalType.hours,
-            dateFormat: DateFormat('dd/MM/yyyy HH:mm'),
-            majorGridLines: MajorGridLines(width: 0),
-            edgeLabelPlacement: EdgeLabelPlacement.shift,
-            // plotBands: [
-            //   PlotBand(
-            //     isVisible: false,
-            //     start: sortedTrend.first.time,
-            //     end: sortedTrend.last.time,
-            //     borderColor: Colors.green,
-            //     borderWidth: 2,
-            //     //text: 'Support',
-            //     //textStyle: TextStyle(color: Colors.green, fontSize: 12),
-            //     dashArray: [5, 5],
-            //   ),
-            //   PlotBand(
-            //     isVisible: false,
-            //     start: sortedTrend.first.time,
-            //     end: sortedTrend.last.time,
-            //     borderColor: Colors.red,
-            //     borderWidth: 2,
-            //     //text: 'Resistance',
-            //     //textStyle: TextStyle(color: Colors.red, fontSize: 12),
-            //     dashArray: [5, 5],
-            //   ),
-            // ],
-          ),
-          primaryYAxis: NumericAxis(
-            plotBands: [
-              PlotBand(
-                isVisible: true,
-                start: lastClose,
-                end: lastClose,
-                //borderColor: Colors.green,
-                borderWidth: 2,
-                // text: 'Price',
-                // textStyle: TextStyle(color: Colors.green, fontSize: 12),
-                dashArray: [5, 5],
-              ),
-              PlotBand(
-                isVisible: true,
-                start: widget.supportLevel,
-                end: widget.supportLevel,
-                borderColor: Colors.green,
-                borderWidth: 2,
-                text: 'Support',
-                textStyle: TextStyle(color: Colors.green, fontSize: 12),
-                dashArray: [5, 5],
-              ),
-              PlotBand(
-                isVisible: true,
-                start: widget.resistanceLevel,
-                end: widget.resistanceLevel,
-                borderColor: Colors.red,
-                borderWidth: 2,
-                text: 'Resistance',
-                textStyle: TextStyle(color: Colors.red, fontSize: 12),
-                dashArray: [5, 5],
-              ),
-            ],
-          ),
-          zoomPanBehavior: ZoomPanBehavior(
-            enablePinching: true,
-            enablePanning: true,
-            zoomMode: ZoomMode.x,
-          ),
-          series: <CandleSeries<Candle, DateTime>>[
-            CandleSeries<Candle, DateTime>(
-              dataSource: sortedTrend,
-              enableSolidCandles: true,
-              enableTooltip: true,
-              xValueMapper: (value, index) => value.time,
-              lowValueMapper: (value, index) => value.low,
-              highValueMapper: (value, index) => value.high,
-              openValueMapper: (value, index) => value.open,
-              closeValueMapper: (value, index) => value.close,
-              width: 0.5,
-              trendlines: [
-                Trendline(
-                  type: TrendlineType.linear,
-                  color: Colors.blueAccent,
-                  width: 2,
-                )
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(
+                    'Vol: ${volume.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, color: Colors.black87),
+                  ),
+                ),
               ],
-            )
+            ),
           ],
-        ),
-      ),
+        );
+      },
     );
   }
 }

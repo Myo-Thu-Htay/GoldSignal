@@ -20,10 +20,13 @@ class MainPage extends StatelessWidget {
         AppRouter.delegate.navigateTo(AppRouter.account); // Navigate to Account
         break;
       case 2:
+        AppRouter.delegate.navigateTo(AppRouter.addTrade);
+        break;
+      case 3:
         AppRouter.delegate
             .navigateTo(AppRouter.portfolio); // Navigate to Portfolio
         break;
-      case 3:
+      case 4:
         AppRouter.delegate
             .navigateTo(AppRouter.settings); // Navigate to Settings
         break;
@@ -43,6 +46,8 @@ class MainPage extends StatelessWidget {
               icon: Icon(Icons.dashboard), label: "Dashboard"),
           BottomNavigationBarItem(
               icon: Icon(Icons.account_balance_wallet), label: "Account"),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.add_circle_outline_outlined), label: "Add"),
           BottomNavigationBarItem(
               icon: Icon(Icons.pie_chart), label: "Portfolio"),
           BottomNavigationBarItem(

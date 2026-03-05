@@ -1,17 +1,78 @@
+import 'dart:math';
 import '../model/candle.dart';
+import '../model/srzone_model.dart';
 
-class SupportResistanceService {
-  /// Returns approximate support/resistance levels from last N candles
-  List<double> detectLevels(List<Candle> candles, {int lookback = 50}) {
-    if (candles.length < lookback) return [];
+class SrService {
+  static List<SrServiceZone> calculateZones(
+    List<Candle> candles, {
+    int lookback = 300,
+    double zoneTolerance = 0.5, // for XAUUSD
+    int minTouches = 2,
+  }) {
+    final zones = <SrServiceZone>[];
+    final recent = candles.sublist(max(0, candles.length - lookback));
 
-    final recent = candles.sublist(candles.length - lookback);
-    final highs = recent.map((c) => c.high).toList();
-    final lows = recent.map((c) => c.low).toList();
+    final swingHighs = <double>[];
+    final swingLows = <double>[];
 
-    final resistance = highs.reduce((a, b) => a > b ? a : b);
-    final support = lows.reduce((a, b) => a < b ? a : b);
+    for (int i = 2; i < recent.length - 2; i++) {
+      final current = recent[i];
 
-    return [support, resistance];
+      // Swing High
+      if (current.high > recent[i - 1].high &&
+          current.high > recent[i - 2].high &&
+          current.high > recent[i + 1].high &&
+          current.high > recent[i + 2].high) {
+        swingHighs.add(current.high);
+      }
+
+      // Swing Low
+      if (current.low < recent[i - 1].low &&
+          current.low < recent[i - 2].low &&
+          current.low < recent[i + 1].low &&
+          current.low < recent[i + 2].low) {
+        swingLows.add(current.low);
+      }
+    }
+
+    zones.addAll(_clusterZones(swingHighs, false, zoneTolerance, minTouches));
+    zones.addAll(_clusterZones(swingLows, true, zoneTolerance, minTouches));
+
+    return zones;
+  }
+
+  static List<SrServiceZone> _clusterZones(
+    List<double> prices,
+    bool isSupport,
+    double tolerance,
+    int minTouches,
+  ) {
+    final zones = <SrServiceZone>[];
+
+    for (final price in prices) {
+      bool found = false;
+
+      for (int i = 0; i < zones.length; i++) {
+        if ((zones[i].price - price).abs() <= tolerance) {
+          zones[i] = SrServiceZone(
+            price: (zones[i].price + price) / 2,
+            touches: zones[i].touches + 1,
+            isSupport: isSupport,
+          );
+          found = true;
+          break;
+        }
+      }
+
+      if (!found) {
+        zones.add(SrServiceZone(
+          price: price,
+          touches: 1,
+          isSupport: isSupport,
+        ));
+      }
+    }
+
+    return zones.where((z) => z.touches >= minTouches).toList();
   }
 }

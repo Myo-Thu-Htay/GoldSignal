@@ -4,12 +4,14 @@ import '../../dashboard/pages/account_page.dart';
 import '../../dashboard/pages/dashboard_page.dart';
 import '../../dashboard/pages/portfolio_page.dart';
 import '../../dashboard/pages/setting_page.dart';
+import '../../dashboard/pages/trade_widget.dart';
 
 class AppRouter {
   static const String dashboard = '/';
   static const String account = '/account';
   static const String portfolio = '/portfolio';
   static const String settings = '/settings';
+  static const String addTrade = '/addTrade';
   static final delegate = _SimpleRouterDelegate();
   static final parser = _SimpleRouteParser();
 }
@@ -40,40 +42,45 @@ class _SimpleRouterDelegate extends RouterDelegate<Uri>
                 selectedIndex: 1,
                 child: AccountPage()))); // Replace with AccountPage()
         break;
+      case AppRouter.addTrade:
+        pages.add(const MaterialPage(
+            child: MainPage(selectedIndex: 2, child: AddTradeWidget())));
+        break;
       case AppRouter.portfolio:
         pages.add(const MaterialPage(
             child: MainPage(
-                selectedIndex: 2,
+                selectedIndex: 3,
                 child: PortfolioPage()))); // Replace with PortfolioPage()
         break;
       case AppRouter.settings:
         pages.add(const MaterialPage(
             child: MainPage(
-                selectedIndex: 3,
+                selectedIndex: 4,
                 child: SettingsPage()))); // Replace with SettingsPage()
         break;
+
       default:
         pages.add(const MaterialPage(
             child: MainPage(
                 selectedIndex: 0, child: DashboardPage()))); // Fallback
     }
     return Navigator(
-        pages: pages,
-        key: navigatorKey,
-        onPopPage: (route, result) {
-          if (!route.didPop(result)) {
-            return false;
-          }
-          // Handle back navigation if needed
-          if (_currentUri.path != AppRouter.dashboard) {
-            _currentUri = Uri(path: AppRouter.dashboard);
-            notifyListeners();
-          }
-          return true;
-        },
-        );
+      pages: pages,
+      key: navigatorKey,
+      // ignore: deprecated_member_use
+      onPopPage: (route, result) {
+        if (!route.didPop(result)) {
+          return false;
+        }
+        // Handle back navigation if needed
+        if (_currentUri.path != AppRouter.dashboard) {
+          _currentUri = Uri(path: AppRouter.dashboard);
+          notifyListeners();
+        }
+        return true;
+      },
+    );
   }
-
 
   @override
   Future<void> setNewRoutePath(configuration) async {

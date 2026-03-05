@@ -33,7 +33,8 @@ class MarketRepositoryImpl implements MarketRepository {
     final h1Candles = await binanceApiService.getCandles('1h');
     final m15Candles = await binanceApiService.getCandles('15m');
     final m5Candles = await binanceApiService.getCandles('5m');
-    return MultiTimeFrameModel(h1: h1Candles, m15: m15Candles, m5: m5Candles);
+    final h4Candles = await binanceApiService.getCandles('4h');
+    return MultiTimeFrameModel(h4:h4Candles,h1: h1Candles, m15: m15Candles, m5: m5Candles);
   }
 
   String mapTimeFrameToBinance(Timeframe tf) {

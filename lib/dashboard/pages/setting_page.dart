@@ -43,6 +43,7 @@ class SettingsPage extends ConsumerWidget {
                   Text(AppStrings.text('notifications', setting.languageCode)),
               value: setting.notificationsEnabled,
               onChanged: (value) => notifier.toggleNotifications(value),
+              
             ),
           ],
         ),

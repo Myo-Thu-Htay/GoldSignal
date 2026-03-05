@@ -1,6 +1,6 @@
 class TradingConstants {
   static const String finageApiUrl =
-      'https://api.finage.co.uk/agg/forex/XAUUSD/1/day/2025-01-01/2026-02-23?apikey=';
+      'https://api.finage.co.uk/agg/forex/';
   static const String binanceApi = 'https://fapi.binance.com/fapi/v1/klines';
   static const String symbol = 'XAUUSD'; // Gold symbol for the API
   static const String binanceSymbol = 'XAUUSDT'; // Gold symbol for Binance API

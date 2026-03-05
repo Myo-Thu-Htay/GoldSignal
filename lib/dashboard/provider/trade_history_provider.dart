@@ -36,6 +36,8 @@ class TradeHistoryNotifier extends StateNotifier<List<Trade>> {
     await prefs.remove('trade_history');
   }
 
+  
+
   Future<void> addManualTrade({
     required bool isBuy,
     required double entry,

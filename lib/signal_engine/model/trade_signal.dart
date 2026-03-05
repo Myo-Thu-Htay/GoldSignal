@@ -1,15 +1,13 @@
 class TradeSignal {
   final bool isBuy;
-  final bool isHold;
   final double entry;
   final double stopLoss;
   final double takeProfit;
   final double lotSize;
-  final double confidence;
+  final int confidence;
 
   TradeSignal({
     required this.isBuy,
-    required this.isHold,
     required this.entry,
     required this.stopLoss,
     required this.takeProfit,

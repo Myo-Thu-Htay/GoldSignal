@@ -4,7 +4,6 @@ import 'package:gold_signal/signal_engine/services/signal_service.dart';
 import '../../signal_engine/model/timeframe.dart';
 import '../../signal_engine/provider/market_provider.dart';
 import '../../signal_engine/provider/signal_provider.dart';
-import '../../signal_engine/services/sr_service.dart';
 import '../widgets/trend_widget.dart';
 
 class DashboardPage extends ConsumerWidget {
@@ -12,215 +11,218 @@ class DashboardPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selectedTF = ref.watch(selectedTimeframeProvider);
     final candlesAsync = ref.watch(binanceCandlesProvider);
     final signalAsync = ref.watch(signalProvider);
+    final selectedTF = ref.watch(selectedTimeframeProvider);
+    final bCandlesAsync = ref.watch(getBinanceCandles);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Dashboard')),
-      body: SizedBox(
+      appBar: AppBar(
+        title: const Text("Gold Signal"),
+        centerTitle: true,
+      ),
+      body: Column(
+        children: [
+          /// PRICE PANEL
+          _pricePanel(ref, candlesAsync, selectedTF),
+
+          /// TREND PANEL
+          _trendPanel(signalAsync, bCandlesAsync),
+
+          /// CHART
+          Expanded(
+            child: _chartPanel(candlesAsync, signalAsync),
+          ),
+
+          /// SIGNAL CARD
+          _signalPanel(signalAsync),
+
+          const SizedBox(height: 10),
+        ],
+      ),
+    );
+  }
+
+  /// PRICE
+  Widget _pricePanel(
+      WidgetRef ref, AsyncValue candlesAsync, Timeframe selectedTF) {
+    return Container(
         width: double.infinity,
-        child: Column(
-          children: [
-            // 1️⃣ Timeframe Selector
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+        padding: const EdgeInsets.all(12),
+        color: Colors.black,
+        child: candlesAsync.when(
+          data: (candle) {
+            return Row(
               children: [
-                const SizedBox(width: 150),
+                Text(
+                  "XAUUSD",
+                  style: TextStyle(fontSize: 18, color: Colors.white),
+                ),
+                const Spacer(),
                 DropdownButton<Timeframe>(
+                  dropdownColor: Colors.black,
+                  style: TextStyle(color: Colors.white),
                   value: selectedTF,
                   items: Timeframe.values.map((tf) {
                     return DropdownMenuItem(
                       value: tf,
-                      child: Text(tf.label),
+                      child:
+                          Text(tf.label, style: TextStyle(color: Colors.white)),
                     );
                   }).toList(),
                   onChanged: (value) {
                     ref.read(selectedTimeframeProvider.notifier).state = value!;
+                    // Trigger signal refresh
                     ref.invalidate(binanceCandlesProvider);
                     ref.invalidate(signalProvider);
+                   
                   },
                 ),
-                const SizedBox(width: 50),
-                ElevatedButton(
-                  onPressed: () {
-                    ref.invalidate(binanceCandlesProvider);
-                    ref.invalidate(signalProvider);
-                  },
-                  child: const Text("Refresh"),
-                )
+                const Spacer(),
+                Text(
+                  candle.isNotEmpty
+                      ? candle.last.close.toStringAsFixed(2)
+                      : "0.00",
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: candle.isNotEmpty &&
+                            candle.last.close >= candle.last.open
+                        ? Colors.green
+                        : Colors.red,
+                  ),
+                ),
+              ],
+            );
+          },
+          loading: () => const Text("Loading..."),
+          error: (e, st) => const Text("Error"),
+        ));
+  }
+
+  /// TREND
+  Widget _trendPanel(AsyncValue signalAsync, AsyncValue bCandlesAsync) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      color: Colors.grey[200],
+      child: bCandlesAsync.when(
+        data: (candle) {
+          final SignalService scoreService = SignalService();
+          final score = scoreService.calculateConfidence(candle);
+          final quality = scoreService.quality(score);
+          return signalAsync.when(
+            data: (signal) {
+              final trend = signal.isBuy ? "Bullish" : "Bearish";
+              return Row(
+                children: [
+                  Text(
+                    "Trend: $trend",
+                    style: TextStyle(fontSize: 16, color: Colors.black),
+                  ),
+                  const Spacer(),
+                  Text(
+                    "Signal Quality: $quality",
+                    style: TextStyle(fontSize: 16, color: Colors.black),
+                  ),
+                ],
+              );
+            },
+            loading: () => const Text("Loading..."),
+            error: (e, st) => const Text("Error"),
+          );
+        },
+        loading: () => const Text("Loading..."),
+        error: (e, st) => const Text("Error"),
+      ),
+    );
+  }
+
+  /// CHART
+  Widget _chartPanel(AsyncValue candlesAsync, AsyncValue signalAsync) {
+    return candlesAsync.when(
+      data: (candles) {
+        final signal = signalAsync.asData?.value;
+
+        return Container(
+          margin: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey),
+          ),
+          child: Consumer(
+            builder: (BuildContext context, WidgetRef ref, Widget? child) {
+              return TrendWidget(
+                trend: candles,
+                isBuySignal: signal?.isBuy ?? false,
+                isHoldSignal: signal?.entry == 0,
+              );
+            },
+          ),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, st) => Text("Error: $e"),
+    );
+  }
+
+  /// SIGNAL
+  Widget _signalPanel(AsyncValue signalAsync) {
+    return signalAsync.when(
+      data: (signal) {
+        final isBuy = signal.isBuy;
+        return Card(
+          color: (isBuy && signal.entry != 0)
+              ? Colors.green
+              : (!isBuy && signal.entry != 0)
+                  ? Colors.red
+                  : Colors.grey,
+          margin: const EdgeInsets.all(12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                Text(
+                  (isBuy && signal.entry != 0)
+                      ? "BUY SIGNAL"
+                      : (!isBuy && signal.entry != 0)
+                          ? "SELL SIGNAL"
+                          : "HOLD SIGNAL",
+                  style: const TextStyle(
+                    fontSize: 22,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                _row("Entry", signal.entry),
+                _row("Stop Loss", signal.stopLoss),
+                _row("Take Profit", signal.takeProfit),
+                _row("Lot Size", signal.lotSize),
+                _row("RR", signal.riskReward),
+                _row(
+                  "Confidence",
+                  (signal.confidence / 10).toDouble(),
+                ),
               ],
             ),
+          ),
+        );
+      },
+      loading: () => const SizedBox(),
+      error: (e, st) => const SizedBox(),
+    );
+  }
 
-            // 2️⃣ Candles & Signal Display
-            Expanded(
-              child: candlesAsync.when(
-                data: (candles) {
-                  final srService = SupportResistanceService();
-                  final levels = candles.isNotEmpty
-                      ? srService.detectLevels(candles)
-                      : [0.0, 0.0];
-
-                  final signalService = SignalService();
-
-                  // Trend display
-                  String trendText = candles.isNotEmpty
-                      ? signalService.detectTrend(candles)
-                      : 'No Trend';
-                  // ignore: unused_local_variable
-                  List<double> trendValues = candles.isNotEmpty
-                      ? signalService.calculateTrend(candles)
-                      : [];
-
-                  // RSI
-                  double rsiValue = candles.isNotEmpty
-                      ? signalService.calculateRSI(candles)
-                      : 50.0;
-                  final signal = signalAsync.asData?.value;
-                  return Column(
-                    children: [
-                      // Trend Chart
-                      SizedBox(
-                        width: double.infinity,
-                        height: 200,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: candles.isNotEmpty
-                                ? signalService.isBullish(candles)
-                                    ? Colors.green[100]
-                                    : signalService.isBearish(candles)
-                                        ? Colors.red[100]
-                                        : Colors.grey[200]
-                                : Colors.grey[200],
-                            border: Border.all(color: Colors.grey),
-                          ),
-                          child: TrendWidget(
-                            trend: candles,
-                            supportLevel: levels[0],
-                            resistanceLevel: levels[1],
-                            isBuySignal: signal?.isBuy ?? false,
-                            isHoldSignal: signal?.isHold ?? false,
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      // Trend Text
-                      Text(
-                        trendText,
-                        style: const TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold),
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      // RSI Display
-                      Text(
-                        'RSI: ${rsiValue.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold),
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      // Support/Resistance Display
-                      Text(
-                        "Resistance: ${levels[1].toStringAsFixed(2)}, Support: ${levels[0].toStringAsFixed(2)}",
-                        style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue),
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      // Signal Card
-                      Expanded(
-                        child: signalAsync.when(
-                          data: (signal) {
-                            // ✅ Treat "Hold" as no signal
-                            //final hasSignal = signal != null && signal.isHold != true;
-
-                            if (signal.isHold) {
-                              return const Card(
-                                color: Colors.grey,
-                                margin: EdgeInsets.all(16),
-                                child: Center(
-                                  child: Text(
-                                    'No Signal, Trend is Sideways',
-                                    style: TextStyle(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white),
-                                  ),
-                                ),
-                              );
-                            }
-                            return SizedBox(
-                              width: double.infinity,
-                              height: 100,
-                              child: Card(
-                                color: signal.isBuy ? Colors.green : Colors.red,
-                                margin: const EdgeInsets.all(16),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        signal.isBuy ? 'BUY' : 'SELL',
-                                        style: const TextStyle(
-                                            fontSize: 24,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                          "Entry: ${signal.entry.toStringAsFixed(2)}",
-                                          style: const TextStyle(
-                                              fontSize: 18,
-                                              color: Colors.white)),
-                                      Text(
-                                          "Stop Loss: ${signal.stopLoss.toStringAsFixed(2)}",
-                                          style: const TextStyle(
-                                              fontSize: 18,
-                                              color: Colors.white)),
-                                      Text(
-                                          "Take Profit: ${signal.takeProfit.toStringAsFixed(2)}",
-                                          style: const TextStyle(
-                                              fontSize: 18,
-                                              color: Colors.white)),
-                                      Text(
-                                          "Lot Size: ${signal.lotSize.toStringAsFixed(2)}",
-                                          style: const TextStyle(
-                                              fontSize: 18,
-                                              color: Colors.white)),
-                                      Text(
-                                          "RR: 1:${signal.riskReward.toStringAsFixed(0)}",
-                                          style: const TextStyle(
-                                              fontSize: 18,
-                                              color: Colors.white)),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                          loading: () =>
-                              const Center(child: CircularProgressIndicator()),
-                          error: (e, st) => Text('Error: $e'),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, st) => Text('Error loading candles: $e'),
-              ),
-            ),
-          ],
-        ),
+  Widget _row(String label, double value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.white)),
+          Text(value.toStringAsFixed(2),
+              style: const TextStyle(color: Colors.white)),
+        ],
       ),
     );
   }

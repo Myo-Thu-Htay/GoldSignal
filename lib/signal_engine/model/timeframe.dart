@@ -33,21 +33,21 @@ extension TimeframeExtension on Timeframe {
   String get displayName {
     switch (this) {
       case Timeframe.m1:
-        return 'Minute';
+        return 'minute';
       case Timeframe.m5:
-        return 'Minute';
+        return 'minute';
       case Timeframe.m15:
-        return 'Minute';
+        return 'minute';
       case Timeframe.m30:
-        return 'Minute';
+        return 'minute';
       case Timeframe.h1:
-        return 'Hour';
+        return 'hour';
       case Timeframe.h4:
-        return 'Hour';
+        return 'hour';
       case Timeframe.d1:
-        return 'Day';
+        return 'day';
       case Timeframe.w1:
-        return 'Week';
+        return 'week';
     }
   }
   String get name {

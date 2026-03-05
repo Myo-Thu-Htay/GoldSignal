@@ -12,16 +12,17 @@ class ForexApiService {
   Future<List<Candle>> fetchCandles(Timeframe tf) async {
     try {
       final response = await _dio.get(
-        TradingConstants.finageApiUrl,
-        queryParameters: {
-          'symbol': TradingConstants.symbol,
-          'multiply': tf.apiValue,
-          'time': tf.displayName,
-          "from": '2025-01-01',
-          "to": DateTime.timestamp().toString(),
-          "apikey": apiKey, // Use the API key from the environment variable
-        },
+        "${TradingConstants.finageApiUrl}${TradingConstants.symbol}/${tf.apiValue}/${tf.displayName}/2026-01-01/${DateTime.timestamp().toString()}?apikey=$apiKey",
+        // queryParameters: {
+        //   'symbol': TradingConstants.symbol,
+        //   'multiply': tf.apiValue,
+        //   'time': tf.displayName,
+        //   "from": '2026-01-01',
+        //   "to": DateTime.timestamp().toString(),
+        //   "apikey": apiKey, // Use the API key from the environment variable
+        // },
       );
+
       if (response.statusCode == 200) {
         final values = response.data['results'];
         double toDouble(dynamic value) {
@@ -31,6 +32,7 @@ class ForexApiService {
           if (value is String) return double.tryParse(value) ?? 0.0;
           return 0.0;
         }
+
         List<Candle> candles = values.map<Candle>((jason) {
           return Candle(
             open: toDouble(jason['o']),
