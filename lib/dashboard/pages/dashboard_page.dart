@@ -29,23 +29,22 @@ class DashboardPage extends ConsumerWidget {
           /// TREND PANEL
           _trendPanel(signalAsync, bCandlesAsync),
 
-            /// CHART
-            Expanded(
-              child: _chartPanel(candlesAsync),
-            ),
+          /// CHART
+          Expanded(
+            child: _chartPanel(candlesAsync),
+          ),
 
-            /// SIGNAL CARD
-            /// Only show if we have a valid signal (entry != 0)
-            /// This prevents showing a "HOLD" card when we have no signal data yet
-            /// The card itself will handle showing "HOLD SIGNAL" if entry == 0
-            /// This way we only show the card when we have actual signal data to display
-            /// If signalAsync is still loading or has an error, the card won't show at all
-            // if (signalAsync.asData?.value != null &&
-            //     signalAsync.asData?.value.entry != 0)
-            _signalPanel(signalAsync),
-            const SizedBox(height: 10),
-          ],
-        ),
+          /// SIGNAL CARD
+          /// Only show if we have a valid signal (entry != 0)
+          /// This prevents showing a "HOLD" card when we have no signal data yet
+          /// The card itself will handle showing "HOLD SIGNAL" if entry == 0
+          /// This way we only show the card when we have actual signal data to display
+          /// If signalAsync is still loading or has an error, the card won't show at all
+          // if (signalAsync.asData?.value != null &&
+          //     signalAsync.asData?.value.entry != 0)
+          _signalPanel(signalAsync),
+          const SizedBox(height: 10),
+        ],
       ),
     );
   }
