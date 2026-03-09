@@ -16,19 +16,18 @@ class DashboardPage extends ConsumerWidget {
     final selectedTF = ref.watch(selectedTimeframeProvider);
     final bCandlesAsync = ref.watch(getBinanceCandles);
 
-    return SafeArea(
-      child: Scaffold(
-        appBar: AppBar(
-          title:
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Gold Signal"),
+        centerTitle: true,
+      ),
+      body: Column(
+        children: [
+          /// PRICE PANEL
+          _pricePanel(ref, candlesAsync, selectedTF),
 
-              /// PRICE PANEL
-              _pricePanel(ref, candlesAsync, selectedTF),
-          centerTitle: true,
-        ),
-        body: Column(
-          children: [
-            /// TREND PANEL
-            _trendPanel(signalAsync, bCandlesAsync),
+          /// TREND PANEL
+          _trendPanel(signalAsync, bCandlesAsync),
 
             /// CHART
             Expanded(
