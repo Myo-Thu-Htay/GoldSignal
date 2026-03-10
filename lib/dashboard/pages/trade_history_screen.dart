@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../provider/controller_provider.dart';
 import '../provider/trade_history_provider.dart';
 import 'view_trade.dart';
 
@@ -9,6 +10,9 @@ class TradeHistoryScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final trades = ref.watch(tradeHistoryProvider);
+    final controller = ref.watch(controllerProvider);
+    final candles = controller.candles;
+    final pnl = ValueNotifier(0.0);
     return SingleChildScrollView(
       child: Column(
         children: [
@@ -42,18 +46,45 @@ class TradeHistoryScreen extends ConsumerWidget {
                         style: TextStyle(fontSize: 10),
                       ),
                     ),
-                    title: Text("\$${trade.entry} ==> \$${trade.exitPrice}"),
-                    subtitle:
-                        Text("SL: ${trade.stopLoss}  TP: ${trade.takeProfit}"),
+                    title: ValueListenableBuilder(
+                        valueListenable: candles,
+                        builder: (context, value, child) {
+                          return Text(
+                              "\$${trade.entry.toStringAsFixed(2)} ==> \$ ${trade.isOpen ? value.last.close.toStringAsFixed(2) : trade.isWin ? trade.takeProfit.toStringAsFixed(2) : (!trade.isWin && trade.exitPrice != null) ? trade.exitPrice!.toStringAsFixed(2) : trade.stopLoss.toStringAsFixed(2)}");
+                        }),
+                    subtitle: Text(
+                        "SL: ${trade.stopLoss.toStringAsFixed(2)}  TP: ${trade.takeProfit.toStringAsFixed(2)}"),
                     trailing: Column(
                       children: [
-                        Text(
-                          "\$${trade.pnl.toStringAsFixed(2)}",
-                          style: TextStyle(
-                            color: trade.pnl >= 0 ? Colors.green : Colors.red,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        ValueListenableBuilder(
+                            valueListenable: controller.livePrice,
+                            builder: (context, value, child) {
+                              if (trades.isNotEmpty) {
+                                pnl.value = controller.calculatePreview(
+                                  candles.value,
+                                  trade.isBuy,
+                                  trade.entry,
+                                  trade.stopLoss,
+                                  trade.takeProfit,
+                                  trade.lotSize,
+                                  value,
+                                  trade.isOpen
+                                      ? "Open"
+                                      : trade.isWin
+                                          ? "TP"
+                                          : "SL",
+                                );
+                              }
+                              return Text(
+                                "\$${pnl.value.toStringAsFixed(2)}",
+                                style: TextStyle(
+                                  color: pnl.value >= 0
+                                      ? Colors.green
+                                      : Colors.red,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              );
+                            }),
                         Text("Lot: ${trade.lotSize}"),
                       ],
                     ),

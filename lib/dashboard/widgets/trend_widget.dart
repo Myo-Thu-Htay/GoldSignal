@@ -5,9 +5,8 @@ import 'package:gold_signal/dashboard/service/controller_service.dart';
 import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import '../../../signal_engine/model/candle.dart';
-import '../../../signal_engine/provider/market_provider.dart';
 import '../../../signal_engine/services/signal_service.dart';
-import '../service/candle_stream_service.dart';
+import '../provider/controller_provider.dart';
 
 class TrendWidget extends ConsumerStatefulWidget {
   final List<Candle> trend;
@@ -24,12 +23,13 @@ class _TrendWidgetState extends ConsumerState<TrendWidget> {
   StreamSubscription<Candle>? candleStream;
   late TrackballBehavior trackballBehavior;
   final GlobalKey<SfCartesianChartState> _chartKey = GlobalKey();
-  final Controller controller = Controller();
+  late Controller controller;
   @override
   void initState() {
     super.initState();
     _candles = [...widget.trend];
-    _startSocket();
+    controller = ref.read(controllerProvider);
+    controller.initialCandles(_candles);
     trackballBehavior = TrackballBehavior(
       enable: true,
       activationMode: ActivationMode.longPress,
@@ -46,15 +46,6 @@ class _TrendWidgetState extends ConsumerState<TrendWidget> {
     }
   }
 
-  void _startSocket() {
-    final socketService = CandleStreamService();
-    final tf = ref.read(selectedTimeframeProvider);
-    socketService.start(tf);
-    candleStream = socketService.stream.listen((candle) {
-      onCandleUpdate(candle);      
-    });
-  }
-
   void onCandleUpdate(Candle candle) {
     final list = [..._candles];
     if (list.isNotEmpty && list.last.time == candle.time) {
@@ -66,7 +57,7 @@ class _TrendWidgetState extends ConsumerState<TrendWidget> {
       }
     }
     _candles = list;
-    controller.initialCandles(_candles);
+
     setState(() {});
   }
 

@@ -4,15 +4,22 @@ import 'package:gold_signal/dashboard/provider/setting_provider.dart';
 import 'core/routing/app_router.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'dashboard/provider/market_stream_provider.dart';
 
-class MyApp extends ConsumerWidget {
+class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});
 
   // This widget is the root of your application.
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final settingAsync = ref.watch(settingsProvider);
+  ConsumerState<MyApp> createState() => _MyAppState();
+}
 
+class _MyAppState extends ConsumerState<MyApp> {
+
+  @override
+  Widget build(BuildContext context) {
+    final settingAsync = ref.watch(settingsProvider);
+    ref.read(marketStreamProvider);
     return settingAsync.when(
       data: (setting) {
         return MaterialApp.router(

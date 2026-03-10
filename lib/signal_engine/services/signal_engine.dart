@@ -10,7 +10,6 @@ import '../model/trade_signal.dart';
 import 'risk_service.dart';
 
 class SignalEngine {
-  //final VolumeFilter _volumeFilter = VolumeFilter();
   final RiskService _riskService = RiskService();
   final SrService srService = SrService();
   final SignalService _signalService = SignalService();
@@ -19,15 +18,8 @@ class SignalEngine {
 
   Future<TradeSignal> evaluate(MultiTimeFrameModel candles,
       double accountBalance, double riskPercent) async {
-    // ===Trend analysis===
-
-    // final isUp = _signalService.isBullish(candles.h1);
-    // final isDown = _signalService.isBearish(candles.h1);
     final confidence = _signalService.calculateConfidence(candles);
     final signal = _signalService.generateSignal(candles, confidence);
-
-    // ===Volume filter===
-    //final volumeConfirm = _volumeFilter.confirm(candles.m15);
     final prefs = await SharedPreferences.getInstance();
     final notificationsEnabled = prefs.getBool('notificationsEnabled') ?? true;
 
@@ -61,7 +53,7 @@ class SignalEngine {
         NotificationService.showNotification(
           title: 'New Trade Signal',
           body:
-              'Buy Signal: Entry: ${entry.toStringAsFixed(2)}, SL: ${sl.toStringAsFixed(2)}, TP: ${tp.toStringAsFixed(2)}, Lot Size: ${lot.toStringAsFixed(2)}, Confidence: ${((confidence /100 ) * 100).toStringAsFixed(1)}%',
+              'Buy Signal: Entry: ${entry.toStringAsFixed(2)}, SL: ${sl.toStringAsFixed(2)}, TP: ${tp.toStringAsFixed(2)}, Lot Size: ${lot.toStringAsFixed(2)}, Confidence: ${((confidence / 100) * 100).toStringAsFixed(1)}%',
         );
       }
 
@@ -105,7 +97,7 @@ class SignalEngine {
         NotificationService.showNotification(
             title: 'New Trade Signal',
             body:
-                'Sell Signal: Entry: ${entry.toStringAsFixed(2)}, SL: ${sl.toStringAsFixed(2)}, TP: ${tp.toStringAsFixed(2)}, Lot Size: ${lot.toStringAsFixed(2)}, Confidence: ${((confidence /100 ) * 100).toStringAsFixed(1)}%');
+                'Sell Signal: Entry: ${entry.toStringAsFixed(2)}, SL: ${sl.toStringAsFixed(2)}, TP: ${tp.toStringAsFixed(2)}, Lot Size: ${lot.toStringAsFixed(2)}, Confidence: ${((confidence / 100) * 100).toStringAsFixed(1)}%');
       }
 
       return TradeSignal(

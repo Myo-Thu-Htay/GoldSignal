@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../signal_engine/model/candle.dart';
-import '../../../signal_engine/provider/market_provider.dart';
 import '../models/trade_model.dart';
+import '../provider/controller_provider.dart';
 import '../provider/trade_history_provider.dart';
+import '../service/trade_calculator.dart';
 import '../widgets/timepicker_widget.dart';
 
 class ViewTradePage extends ConsumerStatefulWidget {
@@ -19,50 +20,45 @@ class _ViewTradePageState extends ConsumerState<ViewTradePage> {
   bool isBuy = true;
   DateTime entryTime = DateTime.now().toUtc();
   DateTime exitTime = DateTime.now().toUtc();
-  final entryController = TextEditingController();
   final slController = TextEditingController();
   final tpController = TextEditingController();
-  final lotController = TextEditingController();
   final exitPrice = TextEditingController();
   String result = "TP";
-
-  double pnlPreview = 0;
-
-  void calculatePreview(bool isBuy) async {
-    final entry = double.tryParse(entryController.text);
+  final pnlPreview = ValueNotifier(0.0);
+  void calculatePreview(List<Candle> candles) async {
+    final entry = widget.trade.entry;
     final sl = double.tryParse(slController.text);
     final tp = double.tryParse(tpController.text);
-    final lot = double.tryParse(lotController.text);
+    final lot = widget.trade.lotSize;
     final exitManual = double.tryParse(exitPrice.text);
 
-    if (entry == null || sl == null || tp == null || lot == null) return;
-
-    double exit = 0;
-    List<Candle> candles = await ref.read(binanceCandlesProvider.future);
-    if (candles.isNotEmpty) {
-      final lastCandle = candles.last;
-      if (result == "TP") {
-        exit = tp;
-      } else if (result == "SL") {
-        exit = sl;
-      } else if (result == "Manual") {
-        exit = exitManual!;
-      } else {
-        if (isBuy) {
-          lastCandle.low <= sl ? exit = sl : exit = lastCandle.close;
-          lastCandle.high >= tp ? exit = tp : exit = lastCandle.close;
-        } else {
-          lastCandle.high >= sl ? exit = sl : exit = lastCandle.close;
-          lastCandle.low <= tp ? exit = tp : exit = lastCandle.close;
-        }
-      }
+    if (sl == null || tp == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              "Please enter a valid Value for ${sl == null ? "Stop Loss" : "Take Profit"}"),
+        ),
+      );
+      return;
     }
 
-    final pnl = isBuy ? (exit - entry) * lot * 100 : (entry - exit) * lot * 100;
+    double exit = TradeCalculator.calculateExit(
+      isBuy: isBuy,
+      entry: entry,
+      sl: sl,
+      tp: tp,
+      result: result,
+      candles: candles,
+      manualExit: exitManual,
+    );
 
-    setState(() {
-      pnlPreview = pnl;
-    });
+    final pnl = TradeCalculator.calculatePnL(
+      isBuy: isBuy,
+      entry: entry,
+      exit: exit,
+      lot: lot,
+    );
+    pnlPreview.value = pnl;
   }
 
   Future<void> pickTime(bool isEntry) async {
@@ -102,74 +98,67 @@ class _ViewTradePageState extends ConsumerState<ViewTradePage> {
     });
   }
 
-  void addTrade(bool isOpen, bool isBuy) async {
-    final entry = double.tryParse(entryController.text);
+  void editTrade(bool isOpen, bool isBuy) {
     final sl = double.tryParse(slController.text);
     final tp = double.tryParse(tpController.text);
-    final lot = double.tryParse(lotController.text);
     final exitManual = double.tryParse(exitPrice.text);
-
-    if (entry == null || sl == null || tp == null || lot == null) {
+    if (sl == null || tp == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Invalid values")),
+        SnackBar(
+          content: Text(
+              "Please enter a valid Value for ${sl == null ? "Stop Loss" : "Take Profit"}"),
+        ),
       );
       return;
     }
-
-    double exit = 0;
-    List<Candle> candles = await ref.read(binanceCandlesProvider.future);
-    if (candles.isNotEmpty) {
-      final lastCandle = candles.last;
-      if (result == "TP") {
-        exit = tp;
-      } else if (result == "SL") {
-        exit = sl;
-      } else if (result == "Manual") {
-        exit = exitManual!;
-      } else {
-        ref
-            .watch(tradeHistoryProvider.notifier)
-            .checkTradeAutoClose(lastCandle.close);
-        if (isBuy) {
-          lastCandle.low <= sl ? exit = sl : exit = lastCandle.close;
-          lastCandle.high >= tp ? exit = tp : exit = lastCandle.close;
-        } else {
-          lastCandle.high >= sl ? exit = sl : exit = lastCandle.close;
-          lastCandle.low <= tp ? exit = tp : exit = lastCandle.close;
-        }
-      }
-    }
-
-    ref.read(tradeHistoryProvider.notifier).addManualTrade(
-          isBuy: isBuy,
-          entry: entry,
-          exit: exit,
-          sl: sl,
-          tp: tp,
-          lot: lot,
-          entryTime: entryTime,
-          exitTime: exitTime,
-          isOpen: isOpen,
-        );
-
-    // ignore: use_build_context_synchronously
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Trade Added")),
+    final exitTime = DateTime.now().toUtc();
+    final updatedTrade = widget.trade.copyWith(
+      stopLoss: sl,
+      takeProfit: tp,
+      exitPrice: result == "Manual"
+          ? exitManual
+          : result == "TP"
+              ? tp
+              : result == "SL"
+                  ? sl
+                  : 0.0,
+      exitTime: result != "Open" ? exitTime : null,
+      isOpen: result == "Open" ? true : false,
+      isWin: result == "TP",
     );
+
+    ref.read(tradeHistoryProvider.notifier).updateTrade(updatedTrade);
   }
 
   @override
   void dispose() {
-    entryController.clear();
-    slController.clear();
-    tpController.clear();
-    lotController.clear();
-    exitPrice.clear();
+    slController.dispose();
+    tpController.dispose();
+    exitPrice.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final trade = widget.trade;
+    final controller = ref.watch(controllerProvider);
+    final candles = controller.candles;
+    final pnl = ValueNotifier(0.0);
+    pnl.value = controller.calculatePreview(
+      candles.value,
+      trade.isBuy,
+      trade.entry,
+      trade.stopLoss,
+      trade.takeProfit,
+      trade.lotSize,
+      trade.exitPrice ?? controller.candles.value.last.close,
+      trade.isOpen
+          ? "Open"
+          : trade.isWin
+              ? "TP"
+              : "SL",
+    );
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -218,11 +207,11 @@ class _ViewTradePageState extends ConsumerState<ViewTradePage> {
                       Text("Lot: ${widget.trade.lotSize}"),
                       const SizedBox(width: 20),
                       Text(
-                        widget.trade.isWin
-                            ? "TP Hit"
-                            : widget.trade.isOpen
-                                ? "Open"
-                                : "SL Hit",
+                        widget.trade.isOpen
+                            ? "Open"
+                            : widget.trade.isWin
+                                ? "Win"
+                                : "Loss",
                         style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -237,21 +226,44 @@ class _ViewTradePageState extends ConsumerState<ViewTradePage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
-                      Text(widget.trade.entry.toString()),
+                      Text("\$${widget.trade.entry.toStringAsFixed(2)}"),
                       const SizedBox(width: 10),
                       Text("==>"),
                       const SizedBox(width: 10),
-                      Text(widget.trade.exitPrice.toString()),
+                      ValueListenableBuilder(
+                          valueListenable: controller.candles,
+                          builder: (context, value, child) {
+                            return Text(
+                                "\$${widget.trade.isOpen ? value.last.close.toStringAsFixed(2) : widget.trade.isWin ? widget.trade.takeProfit.toStringAsFixed(2) : (!widget.trade.isWin && widget.trade.exitPrice != null) ? widget.trade.exitPrice!.toStringAsFixed(2) : widget.trade.stopLoss.toStringAsFixed(2)}");
+                          }),
                       const SizedBox(width: 30),
-                      Text(
-                        '\$${widget.trade.pnl.toStringAsFixed(2)}',
-                        style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: widget.trade.pnl >= 0
-                                ? Colors.green
-                                : Colors.red),
-                      ),
+                      ValueListenableBuilder(
+                          valueListenable: controller.livePrice,
+                          builder: (context, value, child) {
+                            pnl.value = controller.calculatePreview(
+                              controller.candles.value,
+                              widget.trade.isBuy,
+                              widget.trade.entry,
+                              widget.trade.stopLoss,
+                              widget.trade.takeProfit,
+                              widget.trade.lotSize,
+                              value,
+                              widget.trade.isOpen
+                                  ? "Open"
+                                  : widget.trade.isWin
+                                      ? "TP"
+                                      : "SL",
+                            );
+                            return Text(
+                              '\$${pnl.value.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: widget.trade.pnl >= 0
+                                      ? Colors.green
+                                      : Colors.red),
+                            );
+                          }),
                     ],
                   ),
                   Row(
@@ -259,11 +271,11 @@ class _ViewTradePageState extends ConsumerState<ViewTradePage> {
                     children: [
                       Text("SL: "),
                       const SizedBox(width: 10),
-                      Text(widget.trade.stopLoss.toString()),
+                      Text(widget.trade.stopLoss.toStringAsFixed(2)),
                       const SizedBox(width: 20),
                       Text("TP: "),
                       const SizedBox(width: 10),
-                      Text(widget.trade.takeProfit.toString()),
+                      Text(widget.trade.takeProfit.toStringAsFixed(2)),
                     ],
                   ),
                   Row(
@@ -285,7 +297,7 @@ class _ViewTradePageState extends ConsumerState<ViewTradePage> {
                 ],
               ),
             ),
-            (result != "TP" || result != "SL")
+            (widget.trade.isOpen)
                 ? ExpansionTile(
                     title: const Text("Edit Trade"),
                     children: [
@@ -304,7 +316,8 @@ class _ViewTradePageState extends ConsumerState<ViewTradePage> {
                         decoration: InputDecoration(
                           labelText: "Stop Loss",
                         ),
-                        onChanged: (_) => calculatePreview(isBuy),
+                        onChanged: (_) =>
+                            calculatePreview(controller.candles.value),
                       ),
                       TextFormField(
                         validator: (value) {
@@ -321,7 +334,8 @@ class _ViewTradePageState extends ConsumerState<ViewTradePage> {
                         decoration: InputDecoration(
                           labelText: "Take Profit",
                         ),
-                        onChanged: (_) => calculatePreview(isBuy),
+                        onChanged: (_) =>
+                            calculatePreview(controller.candles.value),
                       ),
                       result == "Manual"
                           ? TextFormField(
@@ -338,7 +352,8 @@ class _ViewTradePageState extends ConsumerState<ViewTradePage> {
                               keyboardType: TextInputType.number,
                               decoration: const InputDecoration(
                                   labelText: "Exit Price"),
-                              onChanged: (_) => calculatePreview(isBuy),
+                              onChanged: (_) =>
+                                  calculatePreview(controller.candles.value),
                             )
                           : const SizedBox(),
                       const SizedBox(height: 10),
@@ -352,23 +367,34 @@ class _ViewTradePageState extends ConsumerState<ViewTradePage> {
                             )
                           : const SizedBox(),
                       const SizedBox(height: 10),
-                      Text(
-                        "PnL Preview: \$${pnlPreview.toStringAsFixed(2)}",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: pnlPreview >= 0 ? Colors.green : Colors.red,
-                        ),
-                      ),
+                      ValueListenableBuilder(
+                          valueListenable: pnlPreview,
+                          builder: (context, value, child) {
+                            return Text(
+                              "PnL Preview: \$${value.toStringAsFixed(2)}",
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: pnlPreview.value >= 0
+                                    ? Colors.green
+                                    : Colors.red,
+                              ),
+                            );
+                          }),
                       const SizedBox(height: 10),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue,
                           minimumSize: const Size.fromHeight(40),
                         ),
-                        onPressed: () => result == "Open"
-                            ? addTrade(true, isBuy)
-                            : addTrade(false, isBuy),
+                        onPressed: () {
+                          result == "Open"
+                              ? editTrade(true, isBuy)
+                              : editTrade(false, isBuy);
+                          slController.clear();
+                          tpController.clear();
+                          exitPrice.clear();
+                        },
                         child: const Text("Save Trade"),
                       ),
                       const SizedBox(height: 10),

@@ -27,6 +27,8 @@ class Trade {
     this.isOpen = true,
   });
   Trade copyWith({
+    double? stopLoss,
+    double? takeProfit,
     double? exitPrice,
     DateTime? exitTime,
     double? pnl,
@@ -36,8 +38,8 @@ class Trade {
     return Trade(
       isBuy: isBuy,
       entry: entry,
-      stopLoss: stopLoss,
-      takeProfit: takeProfit,
+      stopLoss: stopLoss ?? this.stopLoss,
+      takeProfit: takeProfit ?? this.takeProfit,
       lotSize: lotSize,
       entryTime: entryTime,
       exitPrice: exitPrice ?? this.exitPrice,

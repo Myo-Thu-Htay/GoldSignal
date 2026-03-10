@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../provider/controller_provider.dart';
 import '../provider/trade_history_provider.dart';
+import '../service/trade_calculator.dart';
 
 class TradeStatsWidget extends ConsumerWidget {
   const TradeStatsWidget({super.key});
@@ -8,11 +10,8 @@ class TradeStatsWidget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final trades = ref.watch(tradeHistoryProvider);
-
-    final totalPnL = trades.fold(0.0, (sum, t) => sum + t.pnl);
-
+    final controller = ref.watch(controllerProvider);
     final wins = trades.where((t) => t.isWin).length;
-
     final winRate =
         trades.isEmpty ? 0 : (wins / trades.length * 100).toStringAsFixed(1);
 
@@ -33,14 +32,21 @@ class TradeStatsWidget extends ConsumerWidget {
                   Column(
                     children: [
                       Text("Total PnL"),
-                      Text(
-                        "\$${totalPnL.toStringAsFixed(2)}",
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: totalPnL >= 0 ? Colors.green : Colors.red,
-                        ),
-                      )
+                      ValueListenableBuilder(
+                          valueListenable: controller.livePrice,
+                          builder: (context, value, child) {
+                            final totalPnL =
+                                TradeCalculator.totalPnL(trades, value);
+                            return Text(
+                              "\$${totalPnL.toStringAsFixed(2)}",
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 18,
+                                color:
+                                    totalPnL >= 0 ? Colors.green : Colors.red,
+                              ),
+                            );
+                          })
                     ],
                   ),
                   Column(

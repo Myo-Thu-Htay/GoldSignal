@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../signal_engine/provider/equity_curve_provider.dart';
+import '../provider/controller_provider.dart';
 import '../provider/trade_history_provider.dart';
 import '../widgets/equity_curve_widget.dart';
 import '../widgets/trade_stats_widget.dart';
@@ -14,6 +15,9 @@ class PortfolioPage extends ConsumerWidget {
     final equityCurve = ref.watch(equityCurveProvider);
     final trades = ref.watch(tradeHistoryProvider);
     final openTrades = trades.where((t) => t.isOpen).toList();
+    final controller = ref.watch(controllerProvider);
+    final candles = controller.candles;
+    final pnl = ValueNotifier(0.0);
     return Scaffold(
       appBar: AppBar(
         title: const Text("Portfolio & PnL"),
@@ -85,19 +89,48 @@ class PortfolioPage extends ConsumerWidget {
                                     style: TextStyle(fontSize: 10),
                                   ),
                                 ),
-                                title: Text(
-                                    "Entry: ${trade.entry}  Exit: ${trade.exitPrice}"),
+                                title: ValueListenableBuilder(
+                                    valueListenable: controller.livePrice,
+                                    builder: (context, value, child) {
+                                      return Text(
+                                          "\$${trade.entry.toStringAsFixed(2)}  ==> \$${value.toStringAsFixed(2)}");
+                                    }),
                                 subtitle: Text(
-                                    "Lot: ${trade.lotSize}  Time: ${trade.entryTime.toLocal()}"),
-                                trailing: Text(
-                                  "\$${trade.pnl.toStringAsFixed(2)}",
-                                  style: TextStyle(
-                                    color: trade.pnl >= 0
-                                        ? Colors.green
-                                        : Colors.red,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
+                                    "SL: ${trade.stopLoss.toStringAsFixed(2)}  TP: ${trade.takeProfit.toStringAsFixed(2)}"),
+                                trailing: ValueListenableBuilder(
+                                    valueListenable: controller.livePrice,
+                                    builder: (context, value, child) {
+                                      if (trades.isNotEmpty) {
+                                        pnl.value = controller.calculatePreview(
+                                          candles.value,
+                                          trade.isBuy,
+                                          trade.entry,
+                                          trade.stopLoss,
+                                          trade.takeProfit,
+                                          trade.lotSize,
+                                          value,
+                                          trade.isOpen
+                                              ? "Open"
+                                              : trade.isWin
+                                                  ? "TP"
+                                                  : "SL",
+                                        );
+                                      }
+                                      return Column(
+                                        children: [
+                                          Text(
+                                            "\$${pnl.value.toStringAsFixed(2)}",
+                                            style: TextStyle(
+                                              color: pnl.value >= 0
+                                                  ? Colors.green
+                                                  : Colors.red,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          Text("Lot: ${trade.lotSize}")
+                                        ],
+                                      );
+                                    }),
                                 onTap: () {
                                   Navigator.push(
                                     context,

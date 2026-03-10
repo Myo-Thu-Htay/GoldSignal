@@ -7,9 +7,19 @@ class Controller{
 
   void initialCandles(List<Candle> data) {
     candles.value = data;
+    livePrice.value = data.last.close;
   }
   void updatePrice(double price) {
     livePrice.value = price;
+  }
+  void addCandle(Candle candle) {
+    final list = [...candles.value];
+    if (list.isNotEmpty && list.last.time == candle.time) {
+      list[list.length - 1] = candle;
+    } else {
+      list.add(candle);
+    }
+    candles.value = list;
   }
 
   double calculatePreview(List<Candle> candles,bool isBuy,double entry,double sl,double tp,double lot,double exitManual,String result)  {
