@@ -43,7 +43,7 @@ The app helps traders monitor price action, calculate trade risk/reward, and man
 
 1️⃣ Clone the repository
 
-git clone https://github.com/yourusername/gold_signal.git
+git clone https://github.com/Myo-Thu-Htay/gold_signal.git
 
 2️⃣ Navigate to project
 
