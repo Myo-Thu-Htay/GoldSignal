@@ -23,47 +23,83 @@ class SignalService {
     return lastClose;
   }
 
-  double calculateTrendStrength(List<Candle> candles) {
-    if (candles.isEmpty) return 0.0;
-    final first = candles.first;
-    final last = candles.last;
-    final priceChange = last.close - first.open;
-    final trendStrength = (priceChange / first.open) * 100;
-    //print('Price Change: $priceChange, Trend Strength: ${trendStrength.clamp(-100, 100)}%');
-    return trendStrength.clamp(-100, 100);
-  }
+  // double calculateTrendStrength(List<Candle> candles) {
+  //   if (candles.isEmpty) return 0.0;
+  //   final first = candles.first;
+  //   final last = candles.last;
+  //   final priceChange = last.close - first.open;
+  //   final trendStrength = (priceChange / first.open) * 100;
+  //   //print('Price Change: $priceChange, Trend Strength: ${trendStrength.clamp(-100, 100)}%');
+  //   return trendStrength.clamp(-100, 100);
+  // }
 
-  List<double> calculateTrend(List<Candle> candles) {
-    final List<double> strengths = [];
-    for (int i = 1; i < candles.length; i++) {
-      final sublist = candles.sublist(0, i + 1);
-      strengths.add(calculateTrendStrength(sublist));
-    }
-    //print('Trend strengths: $strengths');
-    return strengths;
-  }
+  // List<double> calculateTrend(List<Candle> candles) {
+  //   final List<double> strengths = [];
+  //   for (int i = 1; i < candles.length; i++) {
+  //     final sublist = candles.sublist(0, i + 1);
+  //     strengths.add(calculateTrendStrength(sublist));
+  //   }
+  //   //print('Trend strengths: $strengths');
+  //   return strengths;
+  // }
 
   int calculateConfidence(MultiTimeFrameModel multiTf) {
     int score = 0;
-    if (isBullish(multiTf.h1) || isBearish(multiTf.h1)) score += 3;
-    if (isBullish(multiTf.m15) || isBearish(multiTf.m15)) score += 2;
-    if (isBullish(multiTf.m5) || isBearish(multiTf.m5)) score += 1;
-    if (rsiBullish(multiTf.h1) || rsiBearish(multiTf.h1)) score += 3;
-    if (rsiBullish(multiTf.m15) || rsiBearish(multiTf.m15)) score += 2;
-    if (rsiBullish(multiTf.m5) || rsiBearish(multiTf.m5)) score += 1;
-    if (_volumeFilter.confirmBullish(multiTf.h1)) score += 3;
-    if (_volumeFilter.confirmBullish(multiTf.m15)) score += 2;
-    if (_volumeFilter.confirmBullish(multiTf.m5)) score += 1;
-    
+    if (isBullish(multiTf.h1)) {
+      score += 3;
+    } else {
+      score += 3;
+    }
+    if (isBullish(multiTf.m15)) {
+      score += 2;
+    } else {
+      score += 2;
+    }
+    if (isBullish(multiTf.m5)) {
+      score += 1;
+    } else {
+      score += 1;
+    }
+    if (isPullBackToEMA50(multiTf.m15)) {
+      score += 2;
+    } else {
+      score -= 2;
+    }
+    if (rsiBullish(multiTf.h1)) {
+      score += 3;
+    } else {
+      score += 3;
+    }
+    if (rsiBullish(multiTf.m15)) {
+      score += 2;
+    } else {
+      score += 2;
+    }
+    if (rsiBullish(multiTf.m5)) {
+      score += 1;
+    } else {
+      score += 1;
+    }
+    if (_volumeFilter.confirmBullish(multiTf.h1)) {
+      score += 3;
+    } else {
+      score += 3;
+    }
+    if (_volumeFilter.confirmBullish(multiTf.m15)) {
+      score += 2;
+    } else {
+      score += 2;
+    }
+    if (_volumeFilter.confirmBullish(multiTf.m5)) {
+      score += 1;
+    } else {
+      (_volumeFilter.confirmBearish(multiTf.m5));
+      score += 1;
+    }
     return score;
   }
 
-  String quality(int score) {
-    if (score >= 15) return "A+";
-    if (score >= 12) return "B";
-    if (score >= 6) return "C";
-    return "Hold";
-  }
+ 
 
   double calculateSMA(List<Candle> candles, int period) {
     if (candles.length < period) return 0.0;
@@ -196,14 +232,15 @@ class SignalService {
     bool rsiBull = rsiBullish(multiTf.m15);
     bool rsiBear = rsiBearish(multiTf.m15);
 
-    //print( 'H1 Bull: $h1Bull, H1 Bear: $h1Bear, PullBack: $pullBack,  RSI Bull: $rsiBull, RSI Bear: $rsiBear');
-    if (h1Bull && pullBack && score >= 15 && rsiBull) {     
+    // print(
+    //     'H1 Bull: $h1Bull, H1 Bear: $h1Bear, PullBack: $pullBack,  RSI Bull: $rsiBull, RSI Bear: $rsiBear');
+    if (h1Bull && pullBack && score >= 15 && rsiBull) {
       return 'Strong Buy';
-    } else if (h1Bear && pullBack && score >= 15 && rsiBear) {   
+    } else if (h1Bear && pullBack && score >= 15 && rsiBear) {
       return 'Strong Sell';
-    } else if (h1Bull && score >= 12) {
+    } else if (h1Bull && rsiBull && score >= 12) {
       return 'Buy';
-    } else if (h1Bear && score >= 12) {
+    } else if (h1Bear && rsiBear && score >= 12) {
       return 'Sell';
     } else {
       return 'Hold';

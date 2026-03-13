@@ -1,6 +1,10 @@
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+final accountProvider = StateNotifierProvider<AccountNotifier, AccountState>(
+  (ref) => AccountNotifier(),
+);
+
 class AccountState {
   final double balance;
   final double riskPercent;
@@ -35,6 +39,3 @@ class AccountNotifier extends StateNotifier<AccountState> {
   }
 }
 
-final accountProvider = StateNotifierProvider<AccountNotifier, AccountState>(
-  (ref) => AccountNotifier(),
-);

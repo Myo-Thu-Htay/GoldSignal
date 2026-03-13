@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../signal_engine/model/candle.dart';
 import '../models/trade_model.dart';
 import '../provider/controller_provider.dart';
 import '../provider/trade_history_provider.dart';
-import '../service/trade_calculator.dart';
 import '../widgets/timepicker_widget.dart';
 
 class ViewTradePage extends ConsumerStatefulWidget {
@@ -25,42 +23,6 @@ class _ViewTradePageState extends ConsumerState<ViewTradePage> {
   final exitPrice = TextEditingController();
   String result = "TP";
   final pnlPreview = ValueNotifier(0.0);
-  void calculatePreview(List<Candle> candles) async {
-    final entry = widget.trade.entry;
-    final sl = double.tryParse(slController.text);
-    final tp = double.tryParse(tpController.text);
-    final lot = widget.trade.lotSize;
-    final exitManual = double.tryParse(exitPrice.text);
-
-    if (sl == null || tp == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              "Please enter a valid Value for ${sl == null ? "Stop Loss" : "Take Profit"}"),
-        ),
-      );
-      return;
-    }
-
-    double exit = TradeCalculator.calculateExit(
-      isBuy: isBuy,
-      entry: entry,
-      sl: sl,
-      tp: tp,
-      result: result,
-      candles: candles,
-      manualExit: exitManual,
-    );
-
-    final pnl = TradeCalculator.calculatePnL(
-      isBuy: isBuy,
-      entry: entry,
-      exit: exit,
-      lot: lot,
-    );
-    pnlPreview.value = pnl;
-  }
-
   Future<void> pickTime(bool isEntry) async {
     final date = await showDatePicker(
       context: context,
@@ -98,30 +60,15 @@ class _ViewTradePageState extends ConsumerState<ViewTradePage> {
     });
   }
 
-  void editTrade(bool isOpen, bool isBuy) {
-    final sl = double.tryParse(slController.text);
-    final tp = double.tryParse(tpController.text);
-    final exitManual = double.tryParse(exitPrice.text);
-    if (sl == null || tp == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              "Please enter a valid Value for ${sl == null ? "Stop Loss" : "Take Profit"}"),
-        ),
-      );
-      return;
-    }
+  void editTrade(bool isOpen, bool isBuy, double currPrice) {
+    final sl = double.tryParse(slController.text) ?? 0.0;
+    final tp = double.tryParse(tpController.text) ?? 0.0;
+    final exitManual = double.tryParse(exitPrice.text) ?? 0.0;
     final exitTime = DateTime.now().toUtc();
     final updatedTrade = widget.trade.copyWith(
       stopLoss: sl,
       takeProfit: tp,
-      exitPrice: result == "Manual"
-          ? exitManual
-          : result == "TP"
-              ? tp
-              : result == "SL"
-                  ? sl
-                  : 0.0,
+      exitPrice: widget.trade.isOpen ? currPrice : exitManual,
       exitTime: result != "Open" ? exitTime : null,
       isOpen: result == "Open" ? true : false,
       isWin: result == "TP",
@@ -140,25 +87,13 @@ class _ViewTradePageState extends ConsumerState<ViewTradePage> {
 
   @override
   Widget build(BuildContext context) {
-    final trade = widget.trade;
-    final controller = ref.watch(controllerProvider);
-    final candles = controller.candles;
+    final controller = ref.watch(controllerProvider);    
+    double entry = widget.trade.entry;
+    double sl = double.tryParse(slController.text) ?? 0.0;
+    double tp = double.tryParse(tpController.text) ?? 0.0;
+    double lot = widget.trade.lotSize;
+    double exitManual = double.tryParse(exitPrice.text) ?? 0.0;
     final pnl = ValueNotifier(0.0);
-    pnl.value = controller.calculatePreview(
-      candles.value,
-      trade.isBuy,
-      trade.entry,
-      trade.stopLoss,
-      trade.takeProfit,
-      trade.lotSize,
-      trade.exitPrice ?? controller.candles.value.last.close,
-      trade.isOpen
-          ? "Open"
-          : trade.isWin
-              ? "TP"
-              : "SL",
-    );
-
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -215,10 +150,10 @@ class _ViewTradePageState extends ConsumerState<ViewTradePage> {
                         style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: widget.trade.isWin
-                                ? Colors.green
-                                : widget.trade.isOpen
-                                    ? Colors.blue
+                            color: widget.trade.isOpen
+                                ? Colors.blue
+                                : widget.trade.isWin
+                                    ? Colors.green
                                     : Colors.red),
                       ),
                     ],
@@ -259,7 +194,7 @@ class _ViewTradePageState extends ConsumerState<ViewTradePage> {
                               style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: widget.trade.pnl >= 0
+                                  color: pnl.value >= 0
                                       ? Colors.green
                                       : Colors.red),
                             );
@@ -317,7 +252,8 @@ class _ViewTradePageState extends ConsumerState<ViewTradePage> {
                           labelText: "Stop Loss",
                         ),
                         onChanged: (_) =>
-                            calculatePreview(controller.candles.value),
+                            controller.calculatePreview(controller.candles.value,
+                                            isBuy, entry,sl, tp, lot, exitManual, result),
                       ),
                       TextFormField(
                         validator: (value) {
@@ -335,7 +271,8 @@ class _ViewTradePageState extends ConsumerState<ViewTradePage> {
                           labelText: "Take Profit",
                         ),
                         onChanged: (_) =>
-                            calculatePreview(controller.candles.value),
+                            controller.calculatePreview(controller.candles.value,
+                                            isBuy, entry,sl, tp, lot, exitManual, result),
                       ),
                       result == "Manual"
                           ? TextFormField(
@@ -353,7 +290,8 @@ class _ViewTradePageState extends ConsumerState<ViewTradePage> {
                               decoration: const InputDecoration(
                                   labelText: "Exit Price"),
                               onChanged: (_) =>
-                                  calculatePreview(controller.candles.value),
+                                  controller.calculatePreview(controller.candles.value,
+                                            isBuy, entry,sl, tp, lot, exitManual, result),
                             )
                           : const SizedBox(),
                       const SizedBox(height: 10),
@@ -388,9 +326,8 @@ class _ViewTradePageState extends ConsumerState<ViewTradePage> {
                           minimumSize: const Size.fromHeight(40),
                         ),
                         onPressed: () {
-                          result == "Open"
-                              ? editTrade(true, isBuy)
-                              : editTrade(false, isBuy);
+                          editTrade(
+                              true, isBuy, controller.candles.value.last.close);
                           slController.clear();
                           tpController.clear();
                           exitPrice.clear();

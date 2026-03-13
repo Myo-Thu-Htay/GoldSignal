@@ -1,4 +1,4 @@
-package com.mops.gold_signal
+package com.mops.goldsignal
 
 import io.flutter.embedding.android.FlutterActivity
 

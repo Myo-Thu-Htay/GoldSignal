@@ -4,15 +4,26 @@ class AppTheme {
   static final darkTheme = ThemeData.dark().copyWith(
     brightness: Brightness.dark,
     primaryColor: Colors.blueGrey,
-    scaffoldBackgroundColor: const Color(0xFF0D1117),
-    appBarTheme: const AppBarTheme(
-      backgroundColor: Color(0xFF161B22),
+    scaffoldBackgroundColor: Colors.grey[700],
+    appBarTheme: AppBarTheme(
+      backgroundColor: Colors.grey[800],
       elevation: 0,
     ),
+    dropdownMenuTheme: DropdownMenuThemeData(
+      textStyle: const TextStyle(color: Colors.white),
+      menuStyle: MenuStyle(
+        backgroundColor: WidgetStateProperty.all(Colors.black12),
+      ),
+    ),
+    bottomNavigationBarTheme: BottomNavigationBarThemeData(
+      backgroundColor: Colors.grey[800],
+      selectedItemColor: Colors.white,
+      unselectedItemColor: Colors.white54,
+    ),
     textTheme: const TextTheme(
-      bodyLarge: TextStyle(
-          color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+      bodyLarge: TextStyle(color: Colors.white, fontSize: 18),
       bodyMedium: TextStyle(color: Colors.white70, fontSize: 16),
+      bodySmall: TextStyle(color: Colors.white54, fontSize: 14),
     ),
   );
 
@@ -24,10 +35,21 @@ class AppTheme {
       backgroundColor: Colors.blueGrey,
       elevation: 0,
     ),
+    dropdownMenuTheme: DropdownMenuThemeData(
+      textStyle: const TextStyle(color: Colors.white),
+      menuStyle: MenuStyle(
+        backgroundColor: WidgetStateProperty.all(Colors.black12),
+      ),
+    ),
+    bottomNavigationBarTheme: BottomNavigationBarThemeData(
+      backgroundColor: Colors.blueGrey,
+      selectedItemColor: Colors.white,
+      unselectedItemColor: Colors.blueGrey[300],
+    ),
     textTheme: const TextTheme(
-      bodyLarge: TextStyle(
-          color: Colors.black87, fontSize: 20, fontWeight: FontWeight.bold),
+      bodyLarge: TextStyle(color: Colors.black87, fontSize: 18),
       bodyMedium: TextStyle(color: Colors.black54, fontSize: 16),
+      bodySmall: TextStyle(color: Colors.black45, fontSize: 14),
     ),
   );
 }

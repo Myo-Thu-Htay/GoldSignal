@@ -35,10 +35,11 @@ class TradeStatsWidget extends ConsumerWidget {
                       ValueListenableBuilder(
                           valueListenable: controller.livePrice,
                           builder: (context, value, child) {
-                            final totalPnL =
+                            double totalPnL =
                                 TradeCalculator.totalPnL(trades, value);
                             return Text(
-                              "\$${totalPnL.toStringAsFixed(2)}",
+                              // ignore: dead_null_aware_expression
+                              "\$${totalPnL.toStringAsFixed(2) ?? '0.00'}",
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 fontSize: 18,

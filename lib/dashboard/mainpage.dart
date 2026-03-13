@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:gold_signal/core/routing/app_router.dart';
-// import 'presentation/account_page.dart';
-// import 'presentation/dashboard_page.dart';
-// import 'presentation/portfolio_page.dart';
-// import 'presentation/setting_page.dart';
 
 class MainPage extends StatelessWidget {
   final Widget child;

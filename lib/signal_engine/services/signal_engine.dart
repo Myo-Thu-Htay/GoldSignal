@@ -1,6 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../dashboard/provider/notification_service.dart';
+import '../../dashboard/service/notification_service.dart';
 import '../model/multi_timeframe_model.dart';
 import 'signal_service.dart';
 import 'sr_service.dart';
@@ -24,19 +24,22 @@ class SignalEngine {
     final notificationsEnabled = prefs.getBool('notificationsEnabled') ?? true;
 
     // === BUY Condition ===
-    if (signal == 'Strong Buy' || signal == 'Buy') {
+    if (signal == 'Strong Buy') {
       final zones = SrService.calculateZones(
         candles.h1,
         lookback: 300,
         zoneTolerance: 0.5,
         minTouches: 2,
       );
+      // print(
+      //     'Buy Calculated SR Zones: ${zones.map((z) => z.price.toStringAsFixed(2)).toList()}');
       final trade = TpSlService.calculateLevels(
-        currentPrice: candles.m15.last.close,
+        currentPrice: candles.m5.last.close,
         isBuy: true, // Assuming a buy signal for demonstration
         zones: zones,
         minRR: 2.0,
       );
+      //print('Buy Calculated Trade Levels: ${trade ?? "None"}');
       if (trade == null) {
         return holdSignal(confidence); // No valid trade levels, hold signal
       }
@@ -53,7 +56,7 @@ class SignalEngine {
         NotificationService.showNotification(
           title: 'New Trade Signal',
           body:
-              'Buy Signal: Entry: ${entry.toStringAsFixed(2)}, SL: ${sl.toStringAsFixed(2)}, TP: ${tp.toStringAsFixed(2)}, Lot Size: ${lot.toStringAsFixed(2)}, Confidence: ${((confidence / 100) * 100).toStringAsFixed(1)}%',
+              'Buy Signal: Entry: ${entry.toStringAsFixed(2)}, SL: ${sl.toStringAsFixed(2)}, TP: ${tp.toStringAsFixed(2)}, Lot Size: ${lot.toStringAsFixed(2)}, Confidence: ${((confidence / 20) * 100).toStringAsFixed(1)}%',
         );
       }
 
@@ -66,21 +69,49 @@ class SignalEngine {
         confidence: confidence,
       );
     }
-
+    if (signal == 'Buy') {
+      double entry = candles.m5.last.close;
+      double sl = entry - 20; // Example SL for a regular buy signal
+      double tp = entry + 40; // Example TP for a regular buy signal
+      double lot = _riskService.calculateLotSize(
+        balance: accountBalance,
+        entry: entry,
+        riskPercent: riskPercent,
+        stopLoss: sl,
+      );
+      if (notificationsEnabled) {
+        NotificationService.showNotification(
+          title: 'New Trade Signal',
+          body:
+              'Buy Signal: Entry: ${entry.toStringAsFixed(2)}, SL: ${sl.toStringAsFixed(2)}, TP: ${tp.toStringAsFixed(2)}, Lot Size: ${lot.toStringAsFixed(2)}, Confidence: ${((confidence / 20) * 100).toStringAsFixed(1)}%',
+        );
+      }
+      return TradeSignal(
+        isBuy: true,
+        entry: entry,
+        stopLoss: sl,
+        takeProfit: tp,
+        lotSize: lot,
+        confidence: confidence,
+      );
+    }
     // === SELL Condition ===
-    if (signal == 'Strong Sell' || signal == 'Sell') {
+    if (signal == 'Strong Sell') {
       final zones = SrService.calculateZones(
-        candles.m15,
-        lookback: 400,
+        candles.h1,
+        lookback: 300,
         zoneTolerance: 0.5,
         minTouches: 2,
       );
+      // print(
+      //     'Sell Calculated SR Zones: ${zones.map((z) => z.price.toStringAsFixed(2)).toList()}');
       final trade = TpSlService.calculateLevels(
-        currentPrice: candles.m15.last.close,
+        currentPrice: candles.m5.last.close,
         isBuy: false, // Assuming a sell signal for demonstration
         zones: zones,
         minRR: 2.0,
       );
+      //print('Sell Calculated Trade Levels: ${trade ?? "None"}');
       if (trade == null) {
         return holdSignal(confidence); // No valid trade levels, hold signal
       }
@@ -97,9 +128,34 @@ class SignalEngine {
         NotificationService.showNotification(
             title: 'New Trade Signal',
             body:
-                'Sell Signal: Entry: ${entry.toStringAsFixed(2)}, SL: ${sl.toStringAsFixed(2)}, TP: ${tp.toStringAsFixed(2)}, Lot Size: ${lot.toStringAsFixed(2)}, Confidence: ${((confidence / 100) * 100).toStringAsFixed(1)}%');
+                'Sell Signal: Entry: ${entry.toStringAsFixed(2)}, SL: ${sl.toStringAsFixed(2)}, TP: ${tp.toStringAsFixed(2)}, Lot Size: ${lot.toStringAsFixed(2)}, Confidence: ${((confidence / 20) * 100).toStringAsFixed(1)}%');
       }
 
+      return TradeSignal(
+        isBuy: false,
+        entry: entry,
+        stopLoss: sl,
+        takeProfit: tp,
+        lotSize: lot,
+        confidence: confidence,
+      );
+    }
+    if (signal == 'Sell') {
+      double entry = candles.m5.last.close;
+      double sl = entry + 20; // Example SL for a regular sell signal
+      double tp = entry - 40; // Example TP for a regular sell signal
+      double lot = _riskService.calculateLotSize(
+        balance: accountBalance,
+        entry: entry,
+        riskPercent: riskPercent,
+        stopLoss: sl,
+      );
+      if (notificationsEnabled) {
+        NotificationService.showNotification(
+            title: 'New Trade Signal',
+            body:
+                'Sell Signal: Entry: ${entry.toStringAsFixed(2)}, SL: ${sl.toStringAsFixed(2)}, TP: ${tp.toStringAsFixed(2)}, Lot Size: ${lot.toStringAsFixed(2)}, Confidence: ${((confidence / 20) * 100).toStringAsFixed(1)}%');
+      }
       return TradeSignal(
         isBuy: false,
         entry: entry,

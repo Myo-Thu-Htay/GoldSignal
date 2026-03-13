@@ -27,6 +27,7 @@ class SettingsPage extends ConsumerWidget {
               title: Text(AppStrings.text('language', setting.languageCode)),
               trailing: DropdownButton<String>(
                 value: setting.languageCode,
+                style: TextStyle(color: Colors.grey[400]),
                 items: const [
                   DropdownMenuItem(value: 'en', child: Text('English')),
                   DropdownMenuItem(value: 'my', child: Text('Myanmar')),
@@ -42,8 +43,10 @@ class SettingsPage extends ConsumerWidget {
               title:
                   Text(AppStrings.text('notifications', setting.languageCode)),
               value: setting.notificationsEnabled,
-              onChanged: (value) => notifier.toggleNotifications(value),
-              
+              onChanged: (value) => {
+                notifier.toggleNotifications(context, value),
+                //if (value) {notifier.openNotificationSettings(context)}
+              },
             ),
           ],
         ),

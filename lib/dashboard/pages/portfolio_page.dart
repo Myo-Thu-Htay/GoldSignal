@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../signal_engine/provider/equity_curve_provider.dart';
+import '../provider/equity_curve_provider.dart';
 import '../provider/controller_provider.dart';
 import '../provider/trade_history_provider.dart';
 import '../widgets/equity_curve_widget.dart';
 import '../widgets/trade_stats_widget.dart';
-import 'view_trade.dart';
+import 'trade_view_page.dart';
 
 class PortfolioPage extends ConsumerWidget {
   const PortfolioPage({super.key});
@@ -33,18 +33,18 @@ class PortfolioPage extends ConsumerWidget {
       ),
       body: Column(
         children: [
-          const SizedBox(height: 16),
-          Flexible(child: const TradeStatsWidget()),
-          const SizedBox(height: 16),
-          Flexible(
-            child: SizedBox(
-              height: MediaQuery.of(context).size.height * 0.4,
-              child: Card(
-                color: Colors.blueGrey.shade100,
-                margin: const EdgeInsets.all(16),
-                child: EquityCurveWidget(
-                    equityCurve: equityCurve), // Draw equity curve
-              ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: const TradeStatsWidget(),
+          ),
+          const SizedBox(height: 5),
+          SizedBox(
+            height: MediaQuery.of(context).size.height * 0.3,
+            child: Card(
+              color: Colors.blueGrey.shade100,
+              margin: const EdgeInsets.all(16),
+              child: EquityCurveWidget(
+                  equityCurve: equityCurve), // Draw equity curve
             ),
           ),
           openTrades.isEmpty
@@ -59,90 +59,90 @@ class PortfolioPage extends ConsumerWidget {
                 )
               : Flexible(
                   flex: 3,
-                  child: SingleChildScrollView(
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      physics: NeverScrollableScrollPhysics(),
-                      itemCount: openTrades.length,
-                      itemBuilder: (context, index) {
-                        final trade = openTrades[index];
-                        return Dismissible(
-                          key: Key(trade.entryTime.toString()),
-                          background: Container(
-                            color: Colors.red,
-                            alignment: Alignment.centerRight,
-                            padding: EdgeInsets.only(right: 20),
-                            child: Icon(Icons.delete, color: Colors.white),
-                          ),
-                          onDismissed: (direction) {
-                            ref
-                                .read(tradeHistoryProvider.notifier)
-                                .deleteTrade(index);
-                          },
-                          child: Card(
-                            child: ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor:
-                                      trade.isBuy ? Colors.green : Colors.red,
-                                  child: Text(
-                                    trade.type,
-                                    style: TextStyle(fontSize: 10),
-                                  ),
-                                ),
-                                title: ValueListenableBuilder(
-                                    valueListenable: controller.livePrice,
-                                    builder: (context, value, child) {
-                                      return Text(
-                                          "\$${trade.entry.toStringAsFixed(2)}  ==> \$${value.toStringAsFixed(2)}");
-                                    }),
-                                subtitle: Text(
-                                    "SL: ${trade.stopLoss.toStringAsFixed(2)}  TP: ${trade.takeProfit.toStringAsFixed(2)}"),
-                                trailing: ValueListenableBuilder(
-                                    valueListenable: controller.livePrice,
-                                    builder: (context, value, child) {
-                                      if (trades.isNotEmpty) {
-                                        pnl.value = controller.calculatePreview(
-                                          candles.value,
-                                          trade.isBuy,
-                                          trade.entry,
-                                          trade.stopLoss,
-                                          trade.takeProfit,
-                                          trade.lotSize,
-                                          value,
-                                          trade.isOpen
-                                              ? "Open"
-                                              : trade.isWin
-                                                  ? "TP"
-                                                  : "SL",
-                                        );
-                                      }
-                                      return Column(
-                                        children: [
-                                          Text(
-                                            "\$${pnl.value.toStringAsFixed(2)}",
-                                            style: TextStyle(
-                                              color: pnl.value >= 0
-                                                  ? Colors.green
-                                                  : Colors.red,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          Text("Lot: ${trade.lotSize}")
-                                        ],
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: SingleChildScrollView(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
+                        itemCount: openTrades.length,
+                        itemBuilder: (context, index) {
+                          final trade = openTrades[index];
+                          return Dismissible(
+                            key: Key(trade.entryTime.toString()),
+                            background: Container(
+                              color: Colors.red,
+                              alignment: Alignment.centerRight,
+                              padding: EdgeInsets.only(right: 20),
+                              child: Icon(Icons.delete, color: Colors.white),
+                            ),
+                            onDismissed: (direction) {
+                              ref
+                                  .read(tradeHistoryProvider.notifier)
+                                  .deleteTrade(index);
+                            },
+                            child: Card(
+                              child: ValueListenableBuilder(
+                                  valueListenable: controller.livePrice,
+                                  builder: (context, value, child) {
+                                    if (trades.isNotEmpty) {
+                                      pnl.value = controller.calculatePreview(
+                                        candles.value,
+                                        trade.isBuy,
+                                        trade.entry,
+                                        trade.stopLoss,
+                                        trade.takeProfit,
+                                        trade.lotSize,
+                                        value,
+                                        trade.isOpen
+                                            ? "Open"
+                                            : trade.isWin
+                                                ? "TP"
+                                                : "SL",
                                       );
-                                    }),
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          ViewTradePage(trade: trade),
-                                    ),
-                                  );
-                                }),
-                          ),
-                        );
-                      },
+                                    }
+                                    return ListTile(
+                                        leading: CircleAvatar(
+                                          backgroundColor: trade.isBuy
+                                              ? Colors.green
+                                              : Colors.red,
+                                          child: Text(
+                                            trade.type,
+                                            style: TextStyle(fontSize: 10),
+                                          ),
+                                        ),
+                                        title: Text(
+                                            "\$${trade.entry.toStringAsFixed(2)}  ==> \$${value.toStringAsFixed(2)}"),
+                                        subtitle: Text(
+                                            "SL: ${trade.stopLoss.toStringAsFixed(2)}  TP: ${trade.takeProfit.toStringAsFixed(2)}"),
+                                        trailing: Column(
+                                          children: [
+                                            Text(
+                                              "\$${pnl.value.toStringAsFixed(2)}",
+                                              style: TextStyle(
+                                                color: pnl.value >= 0
+                                                    ? Colors.green
+                                                    : Colors.red,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            Text("Lot: ${trade.lotSize}")
+                                          ],
+                                        ),
+                                        onTap: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  ViewTradePage(trade: trade),
+                                            ),
+                                          );
+                                        });
+                                  }),
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ),

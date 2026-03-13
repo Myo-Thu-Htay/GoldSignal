@@ -32,10 +32,8 @@ dependencies:
     sdk: flutter
   flutter:
     sdk: flutter
-  tflite_flutter: ^0.12.1
   flutter_riverpod: ^3.2.1
   intl: 0.20.2
-  flutter_dotenv: ^6.0.0
   dio: ^5.9.1
 
 
@@ -47,11 +45,36 @@ dependencies:
   web_socket_channel: ^3.0.3
   flutter_local_notifications: ^20.1.0
   numberpicker: ^2.1.2
+  permission_handler: ^12.0.1
+  
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
+#   flutter_launcher_icons: ^0.14.4
+# flutter_native_splash:
+#   color: "#000000"
+#   image: assets/goldSplashLogo.png
+#   android: true
+#   ios: true
+#   android_gravity: center
+# flutter_launcher_icons:
+#   android: "launcher_icon"
+#   ios: true
+#   image_path: "assets/goldLogo.png"
+#   min_sdk_android: 21 # android min sdk min:16, default 21
+#   web:
+#     generate: true
+#     image_path: "assets/goldLogo.png"
+#     background_color: "#hexcode"
+#     theme_color: "#hexcode"
+#   windows:
+#     generate: true
+#     image_path: "assets/goldLogo.png"
+#     icon_size: 48 # min:48, max:256, default: 48
+#   macos:
+#     generate: true
+#     image_path: "assets/goldLogo.png"
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your
@@ -71,9 +94,10 @@ flutter:
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
-  assets:
-    - .env
-    - assets/xauusd_multi_model.tflite
+  assets:  
+    - assets/goldSplashLogo.png
+    - assets/goldLogo.png
+
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
 

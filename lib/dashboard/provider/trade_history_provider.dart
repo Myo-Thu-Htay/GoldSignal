@@ -88,7 +88,7 @@ class TradeHistoryNotifier extends StateNotifier<List<Trade>> {
       type: isBuy ? "BUY" : "SELL",
       isOpen: isOpen,
     );
-
+    checkTradeAutoClose(exit);
     await addTrade(trade);
   }
 
@@ -98,6 +98,7 @@ class TradeHistoryNotifier extends StateNotifier<List<Trade>> {
       final updatedList = [...state];
       updatedList[index] = updatedTrade;
       state = updatedList;
+      checkTradeAutoClose(updatedTrade.exitPrice!);
       await _saveTrades();
     }
   }

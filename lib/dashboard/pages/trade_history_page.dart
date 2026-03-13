@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../provider/controller_provider.dart';
 import '../provider/trade_history_provider.dart';
-import 'view_trade.dart';
+import 'trade_view_page.dart';
+import '../provider/account_provider.dart';
 
 class TradeHistoryScreen extends ConsumerWidget {
   const TradeHistoryScreen({super.key});
@@ -12,7 +13,6 @@ class TradeHistoryScreen extends ConsumerWidget {
     final trades = ref.watch(tradeHistoryProvider);
     final controller = ref.watch(controllerProvider);
     final candles = controller.candles;
-    final pnl = ValueNotifier(0.0);
     return SingleChildScrollView(
       child: Column(
         children: [
@@ -59,6 +59,7 @@ class TradeHistoryScreen extends ConsumerWidget {
                         ValueListenableBuilder(
                             valueListenable: controller.livePrice,
                             builder: (context, value, child) {
+                              ValueNotifier pnl = ValueNotifier(0.0);
                               if (trades.isNotEmpty) {
                                 pnl.value = controller.calculatePreview(
                                   candles.value,
@@ -75,6 +76,8 @@ class TradeHistoryScreen extends ConsumerWidget {
                                           : "SL",
                                 );
                               }
+                              controller.calculateAccBalance(
+                                  ref.read(accountProvider).balance, pnl.value);
                               return Text(
                                 "\$${pnl.value.toStringAsFixed(2)}",
                                 style: TextStyle(

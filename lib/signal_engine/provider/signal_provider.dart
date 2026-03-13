@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/signal_engine.dart';
 import 'market_provider.dart';
 import '../model/trade_signal.dart';
-import 'account_provider.dart';
+import '../../dashboard/provider/account_provider.dart';
 
 final signalEngineProvider = Provider((ref) => SignalEngine());
 final signalProvider = FutureProvider<TradeSignal>((ref) async {

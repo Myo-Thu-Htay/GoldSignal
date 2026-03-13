@@ -21,30 +21,33 @@ class DashboardPage extends ConsumerWidget {
         title: const Text("Gold Signal"),
         centerTitle: true,
       ),
-      body: Column(
-        children: [
-          /// PRICE PANEL
-          _pricePanel(ref, candlesAsync, selectedTF),
+      body: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Column(
+          children: [
+            /// PRICE PANEL
+            _pricePanel(ref, candlesAsync, selectedTF),
 
-          /// TREND PANEL
-          _trendPanel(signalAsync, bCandlesAsync),
+            /// TREND PANEL
+            _trendPanel(signalAsync, bCandlesAsync),
 
-          /// CHART
-          Expanded(
-            child: _chartPanel(candlesAsync),
-          ),
+            /// CHART
+            Expanded(
+              child: _chartPanel(candlesAsync),
+            ),
 
-          /// SIGNAL CARD
-          /// Only show if we have a valid signal (entry != 0)
-          /// This prevents showing a "HOLD" card when we have no signal data yet
-          /// The card itself will handle showing "HOLD SIGNAL" if entry == 0
-          /// This way we only show the card when we have actual signal data to display
-          /// If signalAsync is still loading or has an error, the card won't show at all
-          if (signalAsync.asData?.value != null &&
-              signalAsync.asData?.value.entry != 0)
-            _signalPanel(signalAsync),
-          const SizedBox(height: 10),
-        ],
+            /// SIGNAL CARD
+            /// Only show if we have a valid signal (entry != 0)
+            /// This prevents showing a "HOLD" card when we have no signal data yet
+            /// The card itself will handle showing "HOLD SIGNAL" if entry == 0
+            /// This way we only show the card when we have actual signal data to display
+            /// If signalAsync is still loading or has an error, the card won't show at all
+            if (signalAsync.asData?.value != null &&
+                signalAsync.asData?.value.entry != 0)
+              _signalPanel(signalAsync),
+            const SizedBox(height: 10),
+          ],
+        ),
       ),
     );
   }
@@ -70,6 +73,8 @@ class DashboardPage extends ConsumerWidget {
                   value: tf,
                   child: Text(
                     tf.label,
+                    style: TextStyle(
+                        color: tf == selectedTF ? Colors.blue : Colors.indigo),
                   ),
                 );
               }).toList(),
@@ -99,29 +104,26 @@ class DashboardPage extends ConsumerWidget {
         data: (candle) {
           final SignalService scoreService = SignalService();
           final score = scoreService.calculateConfidence(candle);
-          final quality = scoreService.quality(score);
-
-          return signalAsync.when(
-            data: (signal) {
-              final trend = signal.isBuy ? "Bullish" : "Bearish";
-
-              return Row(
-                children: [
-                  Text(
-                    "Trend: $trend",
-                    style: TextStyle(fontSize: 16, color: Colors.black),
-                  ),
-                  const Spacer(),
-                  Text(
-                    "Signal Quality: $quality",
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 16, color: Colors.black),
-                  ),
-                ],
-              );
-            },
-            loading: () => const Text("Loading..."),
-            error: (e, st) => const Text("Error"),
+          final quality = scoreService.generateSignal(candle, score);
+          final trend = (quality.contains("Strong Buy") ||
+                  quality.contains("Buy"))
+              ? "Bullish"
+              : (quality.contains("Strong Sell") || quality.contains("Sell"))
+                  ? "Bearish"
+                  : "Nautral";
+          return Row(
+            children: [
+              Text(
+                "Trend: $trend",
+                style: TextStyle(fontSize: 16, color: Colors.black),
+              ),
+              const Spacer(),
+              Text(
+                "Signal: $quality",
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 16, color: Colors.black),
+              ),
+            ],
           );
         },
         loading: () => const Text("Loading..."),
@@ -183,10 +185,29 @@ Widget _signalPanel(AsyncValue signalAsync) {
               _row("Stop Loss", signal.stopLoss),
               _row("Take Profit", signal.takeProfit),
               _row("Lot Size", signal.lotSize),
-              _row("RR", signal.riskReward),
-              _row(
-                "Confidence",
-                ((signal.confidence / 100) * 100).toDouble(),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 3),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('RR', style: const TextStyle(color: Colors.white)),
+                    Text("1 : ${signal.riskReward.toStringAsFixed(0)}",
+                        style: const TextStyle(color: Colors.white)),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 3),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Confidence',
+                        style: const TextStyle(color: Colors.white)),
+                    Text(
+                        "${(signal.confidence / 20 * 100).toStringAsFixed(0)} %",
+                        style: const TextStyle(color: Colors.white)),
+                  ],
+                ),
               ),
             ],
           ),
