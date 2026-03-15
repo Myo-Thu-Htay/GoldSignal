@@ -17,6 +17,8 @@ class AccountPage extends ConsumerStatefulWidget {
 class _AccountPageState extends ConsumerState<AccountPage> {
   final _balanceController = TextEditingController();
   final _riskController = TextEditingController();
+  double equity = 0.0;
+  double totalPnL = 0.0;
   @override
   void initState() {
     super.initState();
@@ -75,12 +77,37 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                               ValueListenableBuilder(
                                   valueListenable: controller.livePrice,
                                   builder: (context, value, child) {
-                                    double totalPnL =
+                                    totalPnL =
                                         TradeCalculator.totalPnL(trades, value);
-                                    double equity = controller
-                                        .calculateAccBalance(balance, totalPnL);
+                                    equity = controller.calculateAccBalance(
+                                        balance, totalPnL);
                                     return Text(
                                       "\$${equity.toStringAsFixed(2)}",
+                                      style: TextStyle(
+                                          fontSize: 16,
+                                          color: equity > balance
+                                              ? Colors.green
+                                              : equity < balance
+                                                  ? Colors.red
+                                                  : Colors.grey),
+                                    );
+                                  }),
+                            ],
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "Profit: ",
+                                style: TextStyle(fontSize: 16),
+                              ),
+                              ValueListenableBuilder(
+                                  valueListenable: controller.livePrice,
+                                  builder: (context, value, child) {
+                                    totalPnL =
+                                        TradeCalculator.totalPnL(trades, value);
+                                    return Text(
+                                      "\$${totalPnL.toStringAsFixed(2)}",
                                       style: TextStyle(
                                           fontSize: 16,
                                           color: totalPnL >= 0

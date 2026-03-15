@@ -21,8 +21,8 @@ class _ViewTradePageState extends ConsumerState<ViewTradePage> {
   final slController = TextEditingController();
   final tpController = TextEditingController();
   final exitPrice = TextEditingController();
-  String result = "TP";
-  final pnlPreview = ValueNotifier(0.0);
+  String result = "Open";
+  double pnlPreview = 0.0;
   Future<void> pickTime(bool isEntry) async {
     final date = await showDatePicker(
       context: context,
@@ -68,13 +68,46 @@ class _ViewTradePageState extends ConsumerState<ViewTradePage> {
     final updatedTrade = widget.trade.copyWith(
       stopLoss: sl,
       takeProfit: tp,
-      exitPrice: widget.trade.isOpen ? currPrice : exitManual,
-      exitTime: result != "Open" ? exitTime : null,
+      exitPrice: result == "Open" ? currPrice : exitManual,
+      exitTime: result != "Open" ? exitTime : DateTime.now().toUtc(),
       isOpen: result == "Open" ? true : false,
-      isWin: result == "TP",
+      isWin: (result == "TP" ||
+              (result == "Manual" &&
+                  ((isBuy && exitManual >= tp) ||
+                      (!isBuy && exitManual <= tp))))
+          ? true
+          : false,
     );
-
     ref.read(tradeHistoryProvider.notifier).updateTrade(updatedTrade);
+    //ref.watch(tradeHistoryProvider.notifier).checkTradeAutoClose(candles.last.close);
+  }
+
+  double previewPnL() {
+    double tp = double.tryParse(tpController.text) ?? 0.0;
+    double exitManual = double.tryParse(exitPrice.text) ?? 0.0;
+    final trade = widget.trade;
+    if (trade.isBuy) {
+      setState(() {
+        pnlPreview = (result == "Open")
+            ? tp != 0.0
+                ? (tp - trade.entry) * trade.lotSize * 100
+                : 0.0
+            : exitManual != 0.0
+                ? (exitManual - trade.entry) * trade.lotSize * 100
+                : 0.0;
+      });
+    } else {
+      setState(() {
+        pnlPreview = (result == "Open")
+            ? tp != 0.0
+                ? (trade.entry - tp) * trade.lotSize * 100
+                : 0.0
+            : exitManual != 0.0
+                ? (trade.entry - exitManual) * trade.lotSize * 100
+                : 0.0;
+      });
+    }
+    return pnlPreview;
   }
 
   @override
@@ -87,12 +120,8 @@ class _ViewTradePageState extends ConsumerState<ViewTradePage> {
 
   @override
   Widget build(BuildContext context) {
-    final controller = ref.watch(controllerProvider);    
-    double entry = widget.trade.entry;
-    double sl = double.tryParse(slController.text) ?? 0.0;
-    double tp = double.tryParse(tpController.text) ?? 0.0;
-    double lot = widget.trade.lotSize;
-    double exitManual = double.tryParse(exitPrice.text) ?? 0.0;
+    final controller = ref.watch(controllerProvider);
+    //ref.watch(tradeHistoryProvider.notifier).checkTradeAutoClose(controller.livePrice.value);
     final pnl = ValueNotifier(0.0);
     return Scaffold(
       appBar: AppBar(
@@ -122,10 +151,10 @@ class _ViewTradePageState extends ConsumerState<ViewTradePage> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 border: Border.all(
-                    color: widget.trade.isWin
-                        ? Colors.green
-                        : widget.trade.isOpen
-                            ? Colors.blue
+                    color: widget.trade.isOpen
+                        ? Colors.blue
+                        : widget.trade.isWin
+                            ? Colors.green
                             : Colors.red,
                     width: 2),
                 borderRadius: BorderRadius.circular(8),
@@ -137,7 +166,13 @@ class _ViewTradePageState extends ConsumerState<ViewTradePage> {
                     children: [
                       Text("XAUUSD "),
                       const SizedBox(width: 10),
-                      Text(widget.trade.type),
+                      Text(widget.trade.type,
+                          style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: widget.trade.isBuy
+                                  ? Colors.green
+                                  : Colors.red)),
                       const SizedBox(width: 10),
                       Text("Lot: ${widget.trade.lotSize}"),
                       const SizedBox(width: 20),
@@ -226,7 +261,9 @@ class _ViewTradePageState extends ConsumerState<ViewTradePage> {
                     children: [
                       Text("Exit Time: "),
                       const SizedBox(width: 10),
-                      Text(widget.trade.exitTime.toString()),
+                      widget.trade.isOpen
+                          ? Text("Open")
+                          : Text(widget.trade.exitTime.toString()),
                     ],
                   ),
                 ],
@@ -236,6 +273,31 @@ class _ViewTradePageState extends ConsumerState<ViewTradePage> {
                 ? ExpansionTile(
                     title: const Text("Edit Trade"),
                     children: [
+                      Row(
+                        children: [
+                          const Text("Position: "),
+                          const SizedBox(width: 10),
+                          DropdownButton<String>(
+                            value: result,
+                            items: const [
+                              DropdownMenuItem(
+                                  value: "Manual",
+                                  child: Text("Manual",
+                                      style: TextStyle(color: Colors.grey))),
+                              DropdownMenuItem(
+                                  value: "Open",
+                                  child: Text("Open",
+                                      style: TextStyle(color: Colors.blue))),
+                            ],
+                            onChanged: (v) {
+                              setState(() {
+                                result = v!;
+                              });
+                            },
+                          ),
+                          const SizedBox(width: 10),
+                        ],
+                      ),
                       TextFormField(
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -251,9 +313,6 @@ class _ViewTradePageState extends ConsumerState<ViewTradePage> {
                         decoration: InputDecoration(
                           labelText: "Stop Loss",
                         ),
-                        onChanged: (_) =>
-                            controller.calculatePreview(controller.candles.value,
-                                            isBuy, entry,sl, tp, lot, exitManual, result),
                       ),
                       TextFormField(
                         validator: (value) {
@@ -270,9 +329,7 @@ class _ViewTradePageState extends ConsumerState<ViewTradePage> {
                         decoration: InputDecoration(
                           labelText: "Take Profit",
                         ),
-                        onChanged: (_) =>
-                            controller.calculatePreview(controller.candles.value,
-                                            isBuy, entry,sl, tp, lot, exitManual, result),
+                        onChanged: (_) => previewPnL(),
                       ),
                       result == "Manual"
                           ? TextFormField(
@@ -289,9 +346,7 @@ class _ViewTradePageState extends ConsumerState<ViewTradePage> {
                               keyboardType: TextInputType.number,
                               decoration: const InputDecoration(
                                   labelText: "Exit Price"),
-                              onChanged: (_) =>
-                                  controller.calculatePreview(controller.candles.value,
-                                            isBuy, entry,sl, tp, lot, exitManual, result),
+                              onChanged: (_) => previewPnL(),
                             )
                           : const SizedBox(),
                       const SizedBox(height: 10),
@@ -305,20 +360,14 @@ class _ViewTradePageState extends ConsumerState<ViewTradePage> {
                             )
                           : const SizedBox(),
                       const SizedBox(height: 10),
-                      ValueListenableBuilder(
-                          valueListenable: pnlPreview,
-                          builder: (context, value, child) {
-                            return Text(
-                              "PnL Preview: \$${value.toStringAsFixed(2)}",
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: pnlPreview.value >= 0
-                                    ? Colors.green
-                                    : Colors.red,
-                              ),
-                            );
-                          }),
+                      Text(
+                        "PnL Preview: \$${pnlPreview.toStringAsFixed(2)}",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: pnlPreview >= 0 ? Colors.green : Colors.red,
+                        ),
+                      ),
                       const SizedBox(height: 10),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(

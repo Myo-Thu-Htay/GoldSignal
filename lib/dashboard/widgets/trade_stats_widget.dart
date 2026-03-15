@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../provider/controller_provider.dart';
+//import '../provider/controller_provider.dart';
 import '../provider/trade_history_provider.dart';
-import '../service/trade_calculator.dart';
+//import '../service/trade_calculator.dart';
 
 class TradeStatsWidget extends ConsumerWidget {
   const TradeStatsWidget({super.key});
@@ -10,11 +10,11 @@ class TradeStatsWidget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final trades = ref.watch(tradeHistoryProvider);
-    final controller = ref.watch(controllerProvider);
+    //final controller = ref.watch(controllerProvider);
     final wins = trades.where((t) => t.isWin).length;
     final winRate =
         trades.isEmpty ? 0 : (wins / trades.length * 100).toStringAsFixed(1);
-
+    double totalPnL = trades.fold(0, (sum, trade) => sum + trade.pnl);
     return Card(
       elevation: 4,
       child: Padding(
@@ -32,22 +32,14 @@ class TradeStatsWidget extends ConsumerWidget {
                   Column(
                     children: [
                       Text("Total PnL"),
-                      ValueListenableBuilder(
-                          valueListenable: controller.livePrice,
-                          builder: (context, value, child) {
-                            double totalPnL =
-                                TradeCalculator.totalPnL(trades, value);
-                            return Text(
-                              // ignore: dead_null_aware_expression
-                              "\$${totalPnL.toStringAsFixed(2) ?? '0.00'}",
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 18,
-                                color:
-                                    totalPnL >= 0 ? Colors.green : Colors.red,
-                              ),
-                            );
-                          })
+                      Text(
+                        "\$${totalPnL.toStringAsFixed(2)}",
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: totalPnL >= 0 ? Colors.green : Colors.red,
+                        ),
+                      )
                     ],
                   ),
                   Column(

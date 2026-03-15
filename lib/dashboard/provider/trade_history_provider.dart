@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/legacy.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/trade_model.dart';
+import '../service/notification_service.dart';
 
 final tradeHistoryProvider =
     StateNotifierProvider<TradeHistoryNotifier, List<Trade>>(
@@ -88,17 +89,16 @@ class TradeHistoryNotifier extends StateNotifier<List<Trade>> {
       type: isBuy ? "BUY" : "SELL",
       isOpen: isOpen,
     );
-    checkTradeAutoClose(exit);
     await addTrade(trade);
   }
 
   Future<void> updateTrade(Trade updatedTrade) async {
-    final index = state.indexWhere((t) => t.entryTime == updatedTrade.entryTime);
+    final index =
+        state.indexWhere((t) => t.entryTime == updatedTrade.entryTime);
     if (index != -1) {
       final updatedList = [...state];
       updatedList[index] = updatedTrade;
       state = updatedList;
-      checkTradeAutoClose(updatedTrade.exitPrice!);
       await _saveTrades();
     }
   }
@@ -127,14 +127,15 @@ class TradeHistoryNotifier extends StateNotifier<List<Trade>> {
   int get totalTrades => state.length;
 
   /*----------2️⃣ Auto TP/SL Detection Function------------*/
-  
-  void checkTradeAutoClose(double currentPrice) {
+
+  Future<void> checkTradeAutoClose(double currentPrice) async {
+    final prefs = await SharedPreferences.getInstance();
+    final notificationsEnabled = prefs.getBool('notificationsEnabled') ?? true;
+    bool needUpdate = false;
     state = state.map((trade) {
       if (!trade.isOpen) return trade;
-
       bool hitTP = false;
       bool hitSL = false;
-
       if (trade.isBuy) {
         hitTP = currentPrice >= trade.takeProfit;
         hitSL = currentPrice <= trade.stopLoss;
@@ -142,7 +143,6 @@ class TradeHistoryNotifier extends StateNotifier<List<Trade>> {
         hitTP = currentPrice <= trade.takeProfit;
         hitSL = currentPrice >= trade.stopLoss;
       }
-
       if (!hitTP && !hitSL) {
         final livePnl = trade.isBuy
             ? (currentPrice - trade.entry) * trade.lotSize * 100
@@ -155,13 +155,26 @@ class TradeHistoryNotifier extends StateNotifier<List<Trade>> {
       final pnl = trade.isBuy
           ? (exitPrice - trade.entry) * trade.lotSize * 100
           : (trade.entry - exitPrice) * trade.lotSize * 100;
+      if (notificationsEnabled) {
+        NotificationService.showNotification(
+          title: 'Trade Closed: ${hitTP ? "TP Hit" : "SL Hit"}',
+          body:
+              '${trade.isBuy ? "BUY" : "SELL"} Trade closed at \$${exitPrice.toStringAsFixed(2)} with PnL: \$${pnl.toStringAsFixed(2)}',
+        );
+      }
+      if (hitTP || hitSL) {
+        needUpdate = true;
+      }
       return trade.copyWith(
-        exitPrice: currentPrice,
+        exitPrice: exitPrice,
         exitTime: DateTime.now(),
         pnl: pnl,
         isWin: hitTP,
         isOpen: false,
       );
     }).toList();
+    if (needUpdate) {
+      await _saveTrades();
+    }
   }
 }

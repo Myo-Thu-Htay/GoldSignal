@@ -4,6 +4,7 @@ import '../../../signal_engine/services/signal_service.dart';
 import '../../../signal_engine/model/timeframe.dart';
 import '../../../signal_engine/provider/market_provider.dart';
 import '../../../signal_engine/provider/signal_provider.dart';
+import '../../signal_engine/services/trend_service.dart';
 import '../widgets/trend_widget.dart';
 
 class DashboardPage extends ConsumerWidget {
@@ -29,7 +30,7 @@ class DashboardPage extends ConsumerWidget {
             _pricePanel(ref, candlesAsync, selectedTF),
 
             /// TREND PANEL
-            _trendPanel(signalAsync, bCandlesAsync),
+            _trendPanel(candlesAsync, bCandlesAsync),
 
             /// CHART
             Expanded(
@@ -95,26 +96,40 @@ class DashboardPage extends ConsumerWidget {
   }
 
   /// TREND
-  Widget _trendPanel(AsyncValue signalAsync, AsyncValue bCandlesAsync) {
+  Widget _trendPanel(AsyncValue candlesAsync, AsyncValue bCandlesAsync) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(10),
       color: Colors.grey[200],
       child: bCandlesAsync.when(
         data: (candle) {
+          final tCandle = candlesAsync.asData?.value ?? [];
           final SignalService scoreService = SignalService();
+          final TrendService trendService = TrendService();
           final score = scoreService.calculateConfidence(candle);
           final quality = scoreService.generateSignal(candle, score);
-          final trend = (quality.contains("Strong Buy") ||
-                  quality.contains("Buy"))
-              ? "Bullish"
-              : (quality.contains("Strong Sell") || quality.contains("Sell"))
-                  ? "Bearish"
-                  : "Nautral";
+          final trend = trendService.isSideways(tCandle)
+              ? "Sideways"
+              : trendService.isStrongUptrend(tCandle)
+                  ? "Strong Uptrend"
+                  : trendService.isStrongDowntrend(tCandle)
+                      ? "Strong Downtrend"
+                      : trendService.isTrendReversal(tCandle)
+                          ? "Trend Reversal"
+                          : trendService.isTrendContinuation(tCandle)
+                              ? "Trend Continuation"
+                              : trendService.isTrendWeakening(tCandle)
+                                  ? "Trend Weakening"
+                                  : trendService.isTrendStrengthening(tCandle)
+                                      ? "Trend Strengthening"
+                                      : trendService.isTrendExhaustion(tCandle)
+                                          ? "Trend Exhaustion"
+                                          : "Unknown";
           return Row(
             children: [
               Text(
                 "Trend: $trend",
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(fontSize: 16, color: Colors.black),
               ),
               const Spacer(),
@@ -169,11 +184,7 @@ Widget _signalPanel(AsyncValue signalAsync) {
           child: Column(
             children: [
               Text(
-                (isBuy && signal.entry != 0)
-                    ? "BUY SIGNAL"
-                    : (!isBuy && signal.entry != 0)
-                        ? "SELL SIGNAL"
-                        : "HOLD SIGNAL",
+                isBuy ? "BUY SIGNAL" : "SELL SIGNAL",
                 style: const TextStyle(
                   fontSize: 22,
                   color: Colors.white,

@@ -1,7 +1,9 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../core/constants/trading_constants.dart';
 import '../../dashboard/service/notification_service.dart';
 import '../model/multi_timeframe_model.dart';
+import 'atr_service.dart';
 import 'signal_service.dart';
 import 'sr_service.dart';
 import 'tp_sl_service.dart';
@@ -13,7 +15,7 @@ class SignalEngine {
   final RiskService _riskService = RiskService();
   final SrService srService = SrService();
   final SignalService _signalService = SignalService();
-
+  final AtrService _atrService = AtrService();
   static const int emaPeriod = 50;
 
   Future<TradeSignal> evaluate(MultiTimeFrameModel candles,
@@ -22,7 +24,7 @@ class SignalEngine {
     final signal = _signalService.generateSignal(candles, confidence);
     final prefs = await SharedPreferences.getInstance();
     final notificationsEnabled = prefs.getBool('notificationsEnabled') ?? true;
-
+    final atr = _atrService.calculateATR(candles.h1, TradingConstants.atrPeriod);
     // === BUY Condition ===
     if (signal == 'Strong Buy') {
       final zones = SrService.calculateZones(
@@ -71,8 +73,8 @@ class SignalEngine {
     }
     if (signal == 'Buy') {
       double entry = candles.m5.last.close;
-      double sl = entry - 20; // Example SL for a regular buy signal
-      double tp = entry + 40; // Example TP for a regular buy signal
+      double sl = entry - (atr * TradingConstants.slMultiplier); // Example SL for a regular buy signal
+      double tp = entry + (atr * TradingConstants.tpMultiplier); // Example TP for a regular buy signal
       double lot = _riskService.calculateLotSize(
         balance: accountBalance,
         entry: entry,
@@ -142,8 +144,8 @@ class SignalEngine {
     }
     if (signal == 'Sell') {
       double entry = candles.m5.last.close;
-      double sl = entry + 20; // Example SL for a regular sell signal
-      double tp = entry - 40; // Example TP for a regular sell signal
+      double sl = entry + (atr * TradingConstants.slMultiplier); // Example SL for a regular sell signal
+      double tp = entry - (atr * TradingConstants.tpMultiplier); // Example TP for a regular sell signal
       double lot = _riskService.calculateLotSize(
         balance: accountBalance,
         entry: entry,

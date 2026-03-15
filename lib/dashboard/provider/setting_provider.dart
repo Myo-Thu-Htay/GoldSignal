@@ -14,7 +14,7 @@ class SettingsNotifier extends AsyncNotifier<SettingState> {
     return SettingState(
       isDarkMode: prefs.getBool('isDarkMode') ?? false,
       languageCode: prefs.getString('language') ?? 'en',
-      notificationsEnabled: prefs.getBool('notificationsEnabled') ?? true,
+      notificationsEnabled: prefs.getBool('notificationsEnabled') ?? false,
     );
   }
 
@@ -39,41 +39,43 @@ class SettingsNotifier extends AsyncNotifier<SettingState> {
         enabled = false; // Revert to disabled if permission not granted
       }
     }
-    if (enabled == false) {
-      openAppSettings();
+    if (!enabled && currentStatus) {
+      // Optionally, you can show a dialog to guide users to settings
+      // openNotificationSettings(context);
+      showDialog(
+        // ignore: use_build_context_synchronously
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text(
+            'Are you sure?',
+            style: TextStyle(
+                color: Colors.deepOrange, fontWeight: FontWeight.bold),
+          ),
+          content: const Text(
+              'Disabling will stop all alerts.\nYou can re-enable them in settings.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                openAppSettings();
+                enabled = false;
+                Navigator.of(context).pop();
+              },
+              child: const Text('Open Settings'),
+            ),
+          ],
+        ),
+      );
+      if (currentStatus) {
+        enabled = true; // Revert to enabled if user cancels
+      }
     }
     await prefs.setBool('notificationsEnabled', enabled);
     state = AsyncData(state.value!.copyWith(notificationsEnabled: enabled));
   }
-
-  // Future<void> openNotificationSettings(
-  //   BuildContext context,
-  // ) async {
-  //   PermissionStatus status = await Permission.notification.status;
-  //   if (status.isGranted) {
-  //     openAppSettings();
-  //   } else if (status.isDenied) {
-  //     showDialog(
-  //       context: context,
-  //       builder: (context) => AlertDialog(
-  //         title: const Text('Permission Required'),
-  //         content:
-  //             const Text('Please enable notification permissions in settings.'),
-  //         actions: [
-  //           TextButton(
-  //             onPressed: () => Navigator.of(context).pop(),
-  //             child: const Text('Cancel'),
-  //           ),
-  //           TextButton(
-  //             onPressed: () {
-  //               openAppSettings();
-  //               Navigator.of(context).pop();
-  //             },
-  //             child: const Text('Open Settings'),
-  //           ),
-  //         ],
-  //       ),
-  //     );
-  //   }
-  // }
 }
