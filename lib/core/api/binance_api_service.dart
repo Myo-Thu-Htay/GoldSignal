@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:gold_signal/core/constants/trading_constants.dart';
-import '../model/candle.dart';
+import '../../signal_engine/model/candle.dart';
 
 class BinanceApiService {
   final Dio dio = Dio();

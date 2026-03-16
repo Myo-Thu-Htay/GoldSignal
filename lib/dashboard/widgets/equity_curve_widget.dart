@@ -19,8 +19,8 @@ class EquityCurveWidget extends StatelessWidget {
     }
     return SfCartesianChart(
       primaryXAxis: DateTimeAxis(
-        dateFormat: DateFormat.MMMd(),
-        intervalType: DateTimeIntervalType.days,
+        dateFormat: DateFormat.Md(),
+        intervalType: DateTimeIntervalType.minutes,
       ),
       primaryYAxis: NumericAxis(
         opposedPosition: true,
@@ -30,7 +30,7 @@ class EquityCurveWidget extends StatelessWidget {
         ColumnSeries<double, DateTime>(
           dataSource: equityCurve,
           xValueMapper: (value, index) =>
-              DateTime.now().toLocal().add(Duration(days: index)),
+              DateTime.now().toLocal().add(Duration(minutes: index)),
           yValueMapper: (value, index) => value,
         )
       ],

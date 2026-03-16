@@ -75,7 +75,7 @@ class _TrendWidgetState extends ConsumerState<TrendWidget> {
                           coordinateUnit: CoordinateUnit.point,
                           clip: ChartClipBehavior.hide,
                           horizontalAlignment: ChartAlignment.far,
-                          x: lastCandle.time.add(Duration(days: 1)),
+                          x: futureTime.add(Duration(hours: 7)),
                           y: lastClose,
                           widget: Container(
                             decoration: BoxDecoration(
@@ -87,9 +87,6 @@ class _TrendWidgetState extends ConsumerState<TrendWidget> {
                             child: Text(
                               '\$${lastClose.toStringAsFixed(2)}',
                               style: TextStyle(
-                                // color: lastCandle.close >= lastCandle.open
-                                //     ? Colors.green
-                                //     : Colors.red,
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -101,7 +98,7 @@ class _TrendWidgetState extends ConsumerState<TrendWidget> {
                         minimum: sortedTrend.first.time,
                         maximum: futureTime,
                         initialVisibleMinimum:
-                            sortedTrend[startIndex + 10].time,
+                            sortedTrend[startIndex + 50].time,
                         initialVisibleMaximum: futureTime,
                         enableAutoIntervalOnZooming: false,
                         intervalType: DateTimeIntervalType.minutes,

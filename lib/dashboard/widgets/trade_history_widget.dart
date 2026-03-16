@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../provider/controller_provider.dart';
 import '../provider/trade_history_provider.dart';
-import 'trade_view_page.dart';
+import '../pages/trade_view_page.dart';
 import '../provider/account_provider.dart';
 
 class TradeHistoryScreen extends ConsumerWidget {

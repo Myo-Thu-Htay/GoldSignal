@@ -1,3 +1,10 @@
+enum SignalStatus {
+  active,
+  tpHit,
+  slHit,
+  expired,
+  invalid,
+}
 class TradeSignal {
   final bool isBuy;
   final double entry;
@@ -5,7 +12,8 @@ class TradeSignal {
   final double takeProfit;
   final double lotSize;
   final int confidence;
-
+  SignalStatus status;
+  DateTime generatedAt;
   TradeSignal({
     required this.isBuy,
     required this.entry,
@@ -13,18 +21,51 @@ class TradeSignal {
     required this.takeProfit,
     required this.lotSize,
     required this.confidence,
-  });
-
-  double get riskReward {
-    double risk = 0.0;
-    double reward = 0.0;
-    if (isBuy) {
-      risk = (entry - stopLoss).abs();
-      reward = (takeProfit - entry).abs();
-    } else {
-      risk = (stopLoss - entry).abs();
-      reward = (entry - takeProfit).abs();
-    }
-    return reward / (risk == 0 ? 1 : risk);
+    this.status = SignalStatus.active,
+    DateTime? generatedAt,
+  }) : generatedAt = generatedAt ?? DateTime.now();
+  factory TradeSignal.fromJson(Map<String, dynamic> json) {
+    return TradeSignal(
+      isBuy: json['isBuy'] as bool,
+      entry: (json['entry'] as num).toDouble(),
+      stopLoss: (json['stopLoss'] as num).toDouble(),
+      takeProfit: (json['takeProfit'] as num).toDouble(),
+      lotSize: (json['lotSize'] as num).toDouble(),
+      confidence: json['confidence'] as int,
+      status: SignalStatus.values.firstWhere(
+        (e) => e.toString().split('.').last == json['status'],
+        orElse: () => SignalStatus.active,
+      ),
+      generatedAt: json['generatedAt'] != null
+          ? DateTime.parse(json['generatedAt'])
+          : null,
+    );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'isBuy': isBuy,
+      'entry': entry,
+      'stopLoss': stopLoss,
+      'takeProfit': takeProfit,
+      'lotSize': lotSize,
+      'confidence': confidence,
+      'status': status.toString().split('.').last,
+      'generatedAt': generatedAt.toIso8601String(),
+    };
+  }
+
+  TradeSignal copyWith({SignalStatus? status}) {
+    return TradeSignal(
+      isBuy: isBuy,
+      entry: entry,
+      stopLoss: stopLoss,
+      takeProfit: takeProfit,
+      lotSize: lotSize,
+      confidence: confidence,
+      status: status ?? this.status,
+      generatedAt: generatedAt,
+    );
+  }
+
 }

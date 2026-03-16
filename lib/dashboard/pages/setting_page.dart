@@ -15,6 +15,7 @@ class SettingsPage extends ConsumerWidget {
       return Scaffold(
         appBar: AppBar(
           title: Text(AppStrings.text('settings', setting.languageCode)),
+          centerTitle: true,
         ),
         body: ListView(
           children: [

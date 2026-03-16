@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../models/trade_model.dart';
 import '../service/notification_service.dart';
 

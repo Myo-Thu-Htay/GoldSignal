@@ -130,6 +130,7 @@ class _ViewTradePageState extends ConsumerState<ViewTradePage> {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text('Trade History'),
+        centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.delete),

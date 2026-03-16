@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gold_signal/core/theme/app_theme.dart';
 import 'package:gold_signal/dashboard/provider/controller_provider.dart';
@@ -6,8 +9,10 @@ import 'package:gold_signal/dashboard/provider/setting_provider.dart';
 import 'core/routing/app_router.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'dashboard/provider/market_stream_provider.dart';
+import 'signal_engine/model/trade_signal.dart';
 import 'signal_engine/provider/market_provider.dart';
 import 'signal_engine/provider/signal_provider.dart';
+import 'signal_engine/provider/signal_validator_provider.dart';
 
 class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});
@@ -18,18 +23,28 @@ class MyApp extends ConsumerStatefulWidget {
 }
 
 class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
+  StreamSubscription? service;
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    service = FlutterBackgroundService().on('update_signal').listen((event) {
+      if (event != null && event['signal'] != null) {
+        final signalData = event['signal'] as Map<String, dynamic>;
+        final signal = TradeSignal.fromJson(signalData);
+        ref.read(signalValidatorProvider.notifier).addSignal(signal);
+      }
+    });
     Future.microtask(() {
       ref.read(marketStreamProvider);
+      ref.read(signalValidatorProvider);
     });
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    service?.cancel();
     super.dispose();
   }
 
@@ -43,6 +58,7 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
         ref.read(marketStreamProvider);
         ref.read(signalProvider);
         ref.read(controllerProvider);
+        ref.read(signalValidatorProvider);
         break;
       case AppLifecycleState.paused:
         break;

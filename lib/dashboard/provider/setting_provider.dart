@@ -39,7 +39,7 @@ class SettingsNotifier extends AsyncNotifier<SettingState> {
         enabled = false; // Revert to disabled if permission not granted
       }
     }
-    if (!enabled && currentStatus) {
+    if (!enabled) {
       // Optionally, you can show a dialog to guide users to settings
       // openNotificationSettings(context);
       showDialog(

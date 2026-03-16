@@ -19,10 +19,12 @@ class TpSlService {
     required double currentPrice,
     required bool isBuy,
     required List<SrServiceZone> zones,
+    required double atr,
     double minRR = 2.0,
   }) {
     if (zones.isEmpty) return null;
-
+    double buffer =
+        atr * 0.2; // Buffer to avoid placing SL/TP too close to current price
     final supports =
         zones.where((z) => z.isSupport && z.price < currentPrice).toList();
     //print('Supports: ${supports.map((s) => s.price).toList()}');
@@ -33,21 +35,22 @@ class TpSlService {
     if (isBuy) {
       if (supports.isEmpty || resistances.isEmpty) return null;
 
-      final nearestSupport =
-          supports.reduce((a, b) => (currentPrice - a.price).abs() <
-                  (currentPrice - b.price).abs()
+      final nearestSupport = supports.reduce((a, b) =>
+          (currentPrice - a.price).abs() < (currentPrice - b.price).abs()
               ? a
               : b);
 
-      final nearestResistance =
-          resistances.reduce((a, b) => (currentPrice - a.price).abs() <
-                  (currentPrice - b.price).abs()
+      final nearestResistance = resistances.reduce((a, b) =>
+          (currentPrice - a.price).abs() < (currentPrice - b.price).abs()
               ? a
               : b);
-
+      // print(
+      //     'Buy Nearest Support: ${nearestSupport.price}, Nearest Resistance: ${nearestResistance.price}');
       final entry = currentPrice;
-      final sl = nearestSupport.price + 5; // Adding a small buffer to the support level
-      final tp = nearestResistance.price - 5; // Subtracting a small buffer from the resistance level
+      final sl = nearestSupport.price -
+          buffer; // Subtracting a small buffer to the support level
+      final tp = nearestResistance.price -
+          buffer; // Subtracting a small buffer from the resistance level
 
       final risk = (entry - sl).abs();
       final reward = (tp - entry).abs();
@@ -67,29 +70,28 @@ class TpSlService {
     } else {
       if (supports.isEmpty || resistances.isEmpty) return null;
 
-      final nearestResistance =
-          resistances.reduce((a, b) => (currentPrice - a.price).abs() <
-                  (currentPrice - b.price).abs()
+      final nearestResistance = resistances.reduce((a, b) =>
+          (currentPrice - a.price).abs() < (currentPrice - b.price).abs()
               ? a
               : b);
 
-      final nearestSupport =
-          supports.reduce((a, b) => (currentPrice - a.price).abs() <
-                  (currentPrice - b.price).abs()
+      final nearestSupport = supports.reduce((a, b) =>
+          (currentPrice - a.price).abs() < (currentPrice - b.price).abs()
               ? a
               : b);
-
+      // print(
+      //     'Sell Nearest Resistance: ${nearestResistance.price}, Nearest Support: ${nearestSupport.price}');
       final entry = currentPrice;
-      final sl = nearestResistance.price + 5; // Adding a small buffer to the resistance level
-      final tp = nearestSupport.price - 5; // Subtracting a small buffer from the support level
+      final sl = nearestResistance.price +
+          buffer; // Adding a small buffer to the resistance level
+      final tp = nearestSupport.price +
+          buffer; // Adding a small buffer to the support level
 
       final risk = (sl - entry).abs();
       final reward = (entry - tp).abs();
 
       if (risk == 0) return null;
-
       final rr = reward / risk;
-
       if (rr < minRR) return null;
 
       return TradeLevels(

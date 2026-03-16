@@ -40,6 +40,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
       data: (settings) {
         return Scaffold(
           appBar: AppBar(
+            centerTitle: true,
               title: Text(AppStrings.text('account', settings.languageCode))),
           body: Padding(
             padding: const EdgeInsets.all(16.0),

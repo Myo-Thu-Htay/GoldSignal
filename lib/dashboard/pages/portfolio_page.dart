@@ -21,6 +21,7 @@ class PortfolioPage extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Portfolio & PnL"),
+        centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),

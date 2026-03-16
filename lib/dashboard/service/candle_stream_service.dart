@@ -1,5 +1,5 @@
 import 'dart:async';
-import '../../../signal_engine/api/binance_futures_socket.dart';
+import '../../core/api/binance_futures_socket.dart';
 import '../../../signal_engine/model/candle.dart';
 import '../../../signal_engine/model/timeframe.dart';
 

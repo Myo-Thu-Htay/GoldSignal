@@ -4,6 +4,7 @@ import '../../../signal_engine/services/signal_service.dart';
 import '../../../signal_engine/model/timeframe.dart';
 import '../../../signal_engine/provider/market_provider.dart';
 import '../../../signal_engine/provider/signal_provider.dart';
+import '../../signal_engine/provider/signal_validator_provider.dart';
 import '../../signal_engine/services/trend_service.dart';
 import '../widgets/trend_widget.dart';
 
@@ -45,7 +46,7 @@ class DashboardPage extends ConsumerWidget {
             /// If signalAsync is still loading or has an error, the card won't show at all
             if (signalAsync.asData?.value != null &&
                 signalAsync.asData?.value.entry != 0)
-              _signalPanel(signalAsync),
+              _signalPanel(ref),
             const SizedBox(height: 10),
           ],
         ),
@@ -103,42 +104,41 @@ class DashboardPage extends ConsumerWidget {
       color: Colors.grey[200],
       child: bCandlesAsync.when(
         data: (candle) {
-          final tCandle = candlesAsync.asData?.value ?? [];
           final SignalService scoreService = SignalService();
           final TrendService trendService = TrendService();
           final score = scoreService.calculateConfidence(candle);
           final quality = scoreService.generateSignal(candle, score);
-          final trend = trendService.isSideways(tCandle)
-              ? "Sideways"
-              : trendService.isStrongUptrend(tCandle)
-                  ? "Strong Uptrend"
-                  : trendService.isStrongDowntrend(tCandle)
-                      ? "Strong Downtrend"
-                      : trendService.isTrendReversal(tCandle)
-                          ? "Trend Reversal"
-                          : trendService.isTrendContinuation(tCandle)
+          return candlesAsync.when(
+            data: (tcandle) {
+              final trend = trendService.isTrendReversal(tcandle)
+                  ? "Trend Reversal"
+                  : trendService.isUptrend(tcandle)
+                      ? "Uptrend"
+                      : trendService.isDowntrend(tcandle)
+                          ? "Downtrend"
+                          : trendService.isTrendContinuation(tcandle)
                               ? "Trend Continuation"
-                              : trendService.isTrendWeakening(tCandle)
-                                  ? "Trend Weakening"
-                                  : trendService.isTrendStrengthening(tCandle)
-                                      ? "Trend Strengthening"
-                                      : trendService.isTrendExhaustion(tCandle)
-                                          ? "Trend Exhaustion"
-                                          : "Unknown";
-          return Row(
-            children: [
-              Text(
-                "Trend: $trend",
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 16, color: Colors.black),
-              ),
-              const Spacer(),
-              Text(
-                "Signal: $quality",
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 16, color: Colors.black),
-              ),
-            ],
+                              : trendService.isSideways(tcandle)
+                                  ? "Sideways"
+                                  : "Unknown";
+              return Row(
+                children: [
+                  Text(
+                    "Trend: $trend",
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 16, color: Colors.black),
+                  ),
+                  const Spacer(),
+                  Text(
+                    "Signal: $quality",
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 16, color: Colors.black),
+                  ),
+                ],
+              );
+            },
+            loading: () => const Text("Loading..."),
+            error: (e, st) => const Text("Error"),
           );
         },
         loading: () => const Text("Loading..."),
@@ -168,10 +168,19 @@ class DashboardPage extends ConsumerWidget {
 }
 
 /// SIGNAL
-Widget _signalPanel(AsyncValue signalAsync) {
+Widget _signalPanel(WidgetRef ref) {
+  final validate = ref.watch(signalValidatorProvider.notifier);
+  final signalAsync = ref.watch(signalProvider);
   return signalAsync.when(
     data: (signal) {
+      validate.addSignal(signal);
       final isBuy = signal.isBuy;
+      final risk = (signal.entry - signal.stopLoss).abs();
+      final reward = (signal.takeProfit - signal.entry).abs();
+      final rr = reward / risk;
+      int maxConfidence = 20;
+      int positive = signal.confidence + maxConfidence;
+      double confidencePercent = (positive / (maxConfidence * 2)) * 100;
       return Card(
         color: (isBuy && signal.entry != 0)
             ? Colors.green
@@ -201,8 +210,8 @@ Widget _signalPanel(AsyncValue signalAsync) {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('RR', style: const TextStyle(color: Colors.white)),
-                    Text("1 : ${signal.riskReward.toStringAsFixed(0)}",
+                    Text('RR:', style: const TextStyle(color: Colors.white)),
+                    Text('1:${rr.toStringAsFixed(0)}',
                         style: const TextStyle(color: Colors.white)),
                   ],
                 ),
@@ -215,7 +224,7 @@ Widget _signalPanel(AsyncValue signalAsync) {
                     Text('Confidence',
                         style: const TextStyle(color: Colors.white)),
                     Text(
-                        "${(signal.confidence / 20 * 100).toStringAsFixed(0)} %",
+                        "${confidencePercent.clamp(0, 100).toStringAsFixed(0)} %",
                         style: const TextStyle(color: Colors.white)),
                   ],
                 ),
