@@ -16,6 +16,8 @@ The app helps traders monitor price action, calculate trade risk/reward, and man
 - 🎯 Automatic TP / SL Monitoring
 - 💼 Portfolio & Trade Management
 - 🔔 Trade Notification System
+- 🛠️ Run Background mode
+- ✨ Signal Validation 
 
 ---
 
