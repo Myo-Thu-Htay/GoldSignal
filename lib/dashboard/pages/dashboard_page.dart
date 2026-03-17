@@ -39,7 +39,7 @@ class DashboardPage extends ConsumerWidget {
             /// The card itself will handle showing "HOLD SIGNAL" if entry == 0
             /// This way we only show the card when we have actual signal data to display
             /// If signalAsync is still loading or has an error, the card won't show at all
-            if (signal != null && signal.entry != 0) _signalPanel(signal),
+            if (signal != null && signal.status == SignalStatus.active && signal.entry != 0) _signalPanel(signal),
             const SizedBox(height: 10),
           ],
         ),

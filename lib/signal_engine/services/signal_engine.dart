@@ -55,6 +55,7 @@ class SignalEngine {
       takeProfit: tp,
       lotSize: lot,
       confidence: confidence,
+      generatedAt: DateTime.now(),
     );
   }
 
@@ -66,6 +67,8 @@ class SignalEngine {
         stopLoss: 0.0,
         takeProfit: 0.0,
         lotSize: 0.0,
-        confidence: confidence);
+        confidence: confidence,
+        generatedAt: DateTime.now(),
+    );
   }
 }

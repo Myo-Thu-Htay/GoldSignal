@@ -12,30 +12,31 @@ class SignalValidator {
     //Missed Entry Validation
     if (signal.isBuy && currentPrice > signal.entry + maxMove) {
       return signal.copyWith(status: SignalStatus.invalid); // Missed buy entry
-    } else if (!signal.isBuy && currentPrice < signal.entry - maxMove) { 
+    } 
+    if (!signal.isBuy && currentPrice < signal.entry - maxMove) { 
       return signal.copyWith(status: SignalStatus.invalid); // Missed sell entry
     }
+     if (DateTime.now().difference(signal.generatedAt).inMinutes >
+          expiryMinutes) {
+        signal = signal.copyWith(status: SignalStatus.expired);
+      } // Expiry Validation
     // Buy Signal Validation
     if (signal.isBuy) {
       if (currentPrice >= signal.takeProfit) {
         signal = signal.copyWith(status: SignalStatus.tpHit);
-      } else if (currentPrice <= signal.stopLoss) {
+      } 
+      if (currentPrice <= signal.stopLoss) {
         signal = signal.copyWith(status: SignalStatus.slHit);
-      } else if (DateTime.now().difference(signal.generatedAt).inMinutes >
-          expiryMinutes) {
-        signal = signal.copyWith(status: SignalStatus.expired);
       }
     } else {
       // Sell Signal Validation
       if (currentPrice <= signal.takeProfit) {
         signal = signal.copyWith(status: SignalStatus.tpHit);
-      } else if (currentPrice >= signal.stopLoss) {
+      } 
+      if (currentPrice >= signal.stopLoss) {
         signal = signal.copyWith(status: SignalStatus.slHit);
-      } else if (DateTime.now().difference(signal.generatedAt).inMinutes >
-          expiryMinutes) {
-        signal = signal.copyWith(status: SignalStatus.expired);
-      }
-    }
+      } 
+     }
     return signal;
   }
 }

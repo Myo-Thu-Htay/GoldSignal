@@ -61,20 +61,34 @@ void onStart(ServiceInstance service) async {
             'latest_signal',
             jsonEncode(validSignal
                 .toJson())); // Store or update the signal in local storage
-        bool isOn = prefs.getBool('notificationsEnabled') ?? true;
-        if (isOn) {
-          NotificationService.showNotification(
-              title: "New ${signal.isBuy ? 'Buy' : 'Sell'} Signal",
-              body:
-                  "Entry: ${signal.entry.toStringAsFixed(2)}, SL: ${signal.stopLoss.toStringAsFixed(2)}, TP: ${signal.takeProfit.toStringAsFixed(2)},Lot: ${signal.lotSize.toStringAsFixed(2)},Confidence: ${(signal.confidence.abs() / 20 * 100).clamp(0, 100).toStringAsFixed(0)}%, RR: 1:${((signal.takeProfit - signal.entry).abs() / (signal.entry - signal.stopLoss).abs()).toStringAsFixed(0)}");
+        final newId =
+            "${validSignal.isBuy}_${validSignal.entry}_${validSignal.stopLoss}_${validSignal.takeProfit}";
+        final exits = prefs.getString('signal_ids');
+        if (newId != exits) {
+          bool isOn = prefs.getBool('notificationsEnabled') ?? true;
+          prefs.setString('signal_ids', newId); // Update the stored signal ID
+          if (isOn) {
+            NotificationService.showNotification(
+                title: "New ${signal.isBuy ? 'Buy' : 'Sell'} Signal",
+                body:
+                    "Entry: ${signal.entry.toStringAsFixed(2)}, SL: ${signal.stopLoss.toStringAsFixed(2)}, TP: ${signal.takeProfit.toStringAsFixed(2)},Lot: ${signal.lotSize.toStringAsFixed(2)},Confidence: ${(signal.confidence.abs() / 20 * 100).clamp(0, 100).toStringAsFixed(0)}%, RR: 1:${((signal.takeProfit - signal.entry).abs() / (signal.entry - signal.stopLoss).abs()).toStringAsFixed(0)}");
+          }
         }
       } else {
-        bool isOn = prefs.getBool('notificationsEnabled') ?? true;
-        if (isOn) {
-          NotificationService.showNotification(
-              title: "Signal ${validSignal.status}",
-              body:
-                  "The latest signal is now ${validSignal.status.toString().split('.').last.toUpperCase()}");
+        final lastStatus = prefs.getString('latest_signal_status');
+        if (validSignal.status.toString() != SignalStatus.active.toString()) {
+          final newStatus = validSignal.status.toString();
+          if (lastStatus != newStatus) {
+            bool isOn = prefs.getBool('notificationsEnabled') ?? true;
+            if (isOn) {
+              NotificationService.showNotification(
+                  title: "Signal ${validSignal.status}",
+                  body:
+                      "The latest signal is now ${validSignal.status.toString().split('.').last.toUpperCase()}");
+            }
+            await prefs.setString('latest_signal_status',
+                newStatus); // Update the stored signal status
+          }
         }
         await prefs.remove('latest_signal'); // Remove expired/invalid signal
       }
