@@ -82,7 +82,8 @@ void onStart(ServiceInstance service) async {
             bool isOn = prefs.getBool('notificationsEnabled') ?? true;
             if (isOn) {
               NotificationService.showNotification(
-                  title: "Signal ${validSignal.status}",
+                  title:
+                      "Signal ${validSignal.status.toString().split('.').last.toUpperCase()}",
                   body:
                       "The latest signal is now ${validSignal.status.toString().split('.').last.toUpperCase()}");
             }

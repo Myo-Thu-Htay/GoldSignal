@@ -1,6 +1,5 @@
 import '../model/candle.dart';
 import 'atr_service.dart';
-import 'signal_service.dart';
 
 enum TrendDirection { up, down, sideways }
 
@@ -19,7 +18,6 @@ class TrendInfo {
 }
 
 class TrendService {
- final SignalService _signalService = SignalService();
  final AtrService _atrService = AtrService();
   TrendInfo analyzeTrend(List<Candle> candles) {
     if (candles.length < 50) {
@@ -30,8 +28,18 @@ class TrendService {
         isPullback: false,
       );
     }
+    double ema(List<Candle> candles, int period) {
+      double multiplier = 2 / (period + 1);
+      double ema = candles.first.close; // Start with the first close price
+      for (int i = 1; i < candles.length; i++) {
+        ema = (candles[i].close - ema) * multiplier + ema;
+      }
+      return ema;
+    }
 
-    double ema50 = _signalService.calculateEMA(candles, 50);
+    
+
+    double ema50 = ema(candles, 50);
     double atr = _atrService.calculateATR(candles, 14);
     final price = candles.last.close;
    

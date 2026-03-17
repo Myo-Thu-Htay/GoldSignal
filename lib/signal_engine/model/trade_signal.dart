@@ -8,6 +8,7 @@ enum SignalStatus {
   expired,
   invalid,
 }
+
 class TradeSignal {
   final bool isBuy;
   final EntryZone entryZone;
@@ -32,7 +33,12 @@ class TradeSignal {
   factory TradeSignal.fromJson(Map<String, dynamic> json) {
     return TradeSignal(
       isBuy: json['isBuy'] as bool,
-      entryZone: EntryZone.fromJson(json['entryZone'] as Map<String, double>),
+      entryZone: json['entryZone'] != null
+          ? EntryZone.fromJson(json['entryZone'] as Map<String, double>)
+          : EntryZone(
+              0.0,
+              0.0,
+            ),
       entry: (json['entry'] as num).toDouble(),
       stopLoss: (json['stopLoss'] as num).toDouble(),
       takeProfit: (json['takeProfit'] as num).toDouble(),
@@ -75,5 +81,4 @@ class TradeSignal {
       generatedAt: generatedAt,
     );
   }
-
 }
