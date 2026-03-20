@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../signal_engine/provider/market_provider.dart';
-import '../../signal_engine/services/trend_service.dart';
+import '../../core/signal_engine/provider/market_provider.dart';
+import '../../core/signal_engine/services/trend_service.dart';
 
 final trendProvider = Provider((ref) {
   final candles = ref.watch(binanceCandlesProvider).value;

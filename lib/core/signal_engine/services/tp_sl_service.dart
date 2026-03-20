@@ -22,17 +22,19 @@ class TpSlService {
     double minRR = 2.0,
   }) {
     // Buffer to avoid placing SL/TP too close to current price
+    double buffer = atr * 0.5; // 50% of ATR as buffer
     if (isBuy) {
       final entry = currentPrice; // Entry at the upper boundary of the zone
-      final sl = entry - atr; // Subtracting a small buffer to the support level
+      final sl =
+          entry - buffer; // Subtracting a small buffer to the support level
       final tp = entry +
-          (atr * 2); // Subtracting a small buffer from the resistance level
+          (buffer * 2); // Subtracting a small buffer from the resistance level
       final risk = (entry - sl).abs();
       final reward = (tp - entry).abs();
 
       if (risk == 0) return null;
 
-      final rr = (reward / risk).roundToDouble();
+      final rr = (reward / risk);
       if (kDebugMode) {
         print(
             'Calculated levels for ${isBuy ? 'BUY' : 'SELL'} signal: Entry: ${entry.toStringAsFixed(2)}, SL: ${sl.toStringAsFixed(2)}, TP: ${tp.toStringAsFixed(2)}, RR: ${rr.toStringAsFixed(2)}');
@@ -47,9 +49,10 @@ class TpSlService {
       );
     } else {
       final entry = currentPrice; // Entry at the lower boundary of the zone
-      final sl = entry + atr; // Adding a small buffer to the resistance level
+      final sl =
+          entry + buffer; // Adding a small buffer to the resistance level
       final tp =
-          entry - (atr * 2); // Adding a small buffer to the support level
+          entry - (buffer * 2); // Adding a small buffer to the support level
 
       final risk = (sl - entry).abs();
       final reward = (entry - tp).abs();
@@ -58,7 +61,7 @@ class TpSlService {
             'Calculated levels for ${isBuy ? 'BUY' : 'SELL'} signal: Entry: ${entry.toStringAsFixed(2)}, SL: ${sl.toStringAsFixed(2)}, TP: ${tp.toStringAsFixed(2)}, RR: ${reward / risk}');
       }
       if (risk == 0) return null;
-      final rr = (reward / risk).roundToDouble();
+      final rr = (reward / risk);
       if (rr < minRR) return null;
 
       return TradeLevels(

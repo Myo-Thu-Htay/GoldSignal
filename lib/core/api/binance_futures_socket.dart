@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:web_socket_channel/web_socket_channel.dart';
-import '../../signal_engine/model/candle.dart';
+import '../signal_engine/model/candle.dart';
 
 class BinanceFuturesSocketService {
   late WebSocketChannel _channel;

@@ -1,4 +1,4 @@
-import '../../signal_engine/model/timeframe.dart';
+import '../signal_engine/model/timeframe.dart';
 
 String mapTimeFrameToBinance(Timeframe tf) {
     switch (tf) {
@@ -19,21 +19,4 @@ String mapTimeFrameToBinance(Timeframe tf) {
     }
   }
 
-  String mapTimeFrameForChart(Timeframe tf) {
-    switch (tf) {
-      case Timeframe.m5:
-        return '300';
-      case Timeframe.m15:
-        return '900';
-      case Timeframe.m30:
-        return '1800';
-      case Timeframe.h1:
-        return '3600';
-      case Timeframe.h4:
-        return '14400';
-      case Timeframe.d1:
-        return '86400';
-      default:
-        return '3600';
-    }
-  }
+ 

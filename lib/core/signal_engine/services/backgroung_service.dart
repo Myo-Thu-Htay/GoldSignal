@@ -5,12 +5,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:gold_signal/core/api/binance_api_service.dart';
 import 'package:gold_signal/core/api/market_repository_impl.dart';
-import 'package:gold_signal/signal_engine/model/trade_signal.dart';
-import 'package:gold_signal/signal_engine/services/signal_engine.dart';
-import 'package:gold_signal/signal_engine/services/signal_validator.dart';
+import 'package:gold_signal/core/signal_engine/model/trade_signal.dart';
+import 'package:gold_signal/core/signal_engine/services/signal_engine.dart';
+import 'package:gold_signal/core/signal_engine/services/signal_validator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../dashboard/service/notification_service.dart';
+import '../../../dashboard/service/notification_service.dart';
 
 Future<void> initializeService() async {
   final service = FlutterBackgroundService();
@@ -57,19 +57,22 @@ void onStart(ServiceInstance service) async {
         if (kDebugMode) {
           print('Pending signal detected, waiting for confirmation...');
         }
-        await prefs
-            .setStringList('valid_signals', [jsonEncode(validSignal.toJson())]);
-      }
       if (validSignal.status == SignalStatus.active) {
         service.invoke('update_signal', {
           'signal': validSignal.toJson(),
         }); // Send signal to the main app
+        await prefs
+            .setStringList('valid_signals', [jsonEncode(validSignal.toJson())]);
+      }
         await prefs.setString(
             'active_signals',
             jsonEncode(validSignal
                 .toJson())); // Store or update the signal in local storage
         final newId =
-            "${validSignal.isBuy}_${validSignal.stopLoss.round()}_${validSignal.takeProfit.round()}";
+            "${validSignal.status.toString().split('.').last}_${validSignal.isBuy ? 'BUY' : 'SELL'}";
+        if (kDebugMode) {
+          print('New active signal: $newId');
+        }
         final exits = prefs.getString('signal_ids');
         if (newId != exits) {
           bool isOn = prefs.getBool('notificationsEnabled') ?? true;

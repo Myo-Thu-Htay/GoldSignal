@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:gold_signal/signal_engine/provider/signal_validator_provider.dart';
-import '../../signal_engine/model/trade_signal.dart';
+import 'package:gold_signal/core/signal_engine/provider/signal_validator_provider.dart';
+import '../../core/signal_engine/model/trade_signal.dart';
 
 class SignalHistoryPage extends ConsumerStatefulWidget {
   const SignalHistoryPage({super.key});
@@ -11,23 +11,9 @@ class SignalHistoryPage extends ConsumerStatefulWidget {
 }
 
 class _SignalHistoryPageState extends ConsumerState<SignalHistoryPage> {
-  List<TradeSignal> signals = [];
-  @override
-  void initState() {
-    super.initState();
-    // Load signal history from provider or local storage
-    _loadInitialSignal();
-  }
-
-  Future<void> _loadInitialSignal() async {
-    final sg = await ref.read(signalValidatorProvider.notifier).loadSignals();
-    setState(() {
-      signals = sg;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
+    List<TradeSignal> signals = ref.watch(signalValidatorProvider);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Signal History'),
@@ -41,6 +27,12 @@ class _SignalHistoryPageState extends ConsumerState<SignalHistoryPage> {
                 final signal = signals[index];
                 return Dismissible(
                   key: Key(signal.entry.toString()),
+                  background: Container(
+                    color: Colors.red,
+                    alignment: Alignment.centerRight,
+                    padding: EdgeInsets.only(right: 20),
+                    child: Icon(Icons.delete, color: Colors.white),
+                  ),
                   onDismissed: (direction) {
                     ref
                         .read(signalValidatorProvider.notifier)

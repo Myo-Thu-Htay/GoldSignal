@@ -1,7 +1,7 @@
 import 'dart:async';
 import '../../core/api/binance_futures_socket.dart';
-import '../../../signal_engine/model/candle.dart';
-import '../../../signal_engine/model/timeframe.dart';
+import '../../core/signal_engine/model/candle.dart';
+import '../../core/signal_engine/model/timeframe.dart';
 
 class CandleStreamService {
   final _controller = StreamController<Candle>.broadcast();

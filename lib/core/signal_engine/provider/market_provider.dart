@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
-import '../../core/api/binance_api_service.dart';
-import '../../core/api/market_repository_impl.dart';
+import '../../api/binance_api_service.dart';
+import '../../api/market_repository_impl.dart';
 import '../model/candle.dart';
 import '../model/multi_timeframe_model.dart';
 import '../model/timeframe.dart';

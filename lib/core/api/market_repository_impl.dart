@@ -1,7 +1,7 @@
 import 'package:gold_signal/core/api/binance_api_service.dart';
-import 'package:gold_signal/signal_engine/model/multi_timeframe_model.dart';
-import '../../signal_engine/model/candle.dart';
-import '../../signal_engine/model/timeframe.dart';
+import 'package:gold_signal/core/signal_engine/model/multi_timeframe_model.dart';
+import '../signal_engine/model/candle.dart';
+import '../signal_engine/model/timeframe.dart';
 import '../constants/timeframe.dart';
 
 abstract class MarketRepository {

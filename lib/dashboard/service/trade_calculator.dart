@@ -1,4 +1,4 @@
-import 'package:gold_signal/signal_engine/model/candle.dart';
+import 'package:gold_signal/core/signal_engine/model/candle.dart';
 
 import '../models/trade_model.dart';
 

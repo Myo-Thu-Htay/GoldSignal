@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:gold_signal/signal_engine/model/trade_signal.dart';
-import '../../../signal_engine/model/timeframe.dart';
-import '../../../signal_engine/provider/market_provider.dart';
-import '../../../signal_engine/provider/signal_provider.dart';
+import 'package:gold_signal/core/signal_engine/model/trade_signal.dart';
+import '../../core/signal_engine/model/timeframe.dart';
+import '../../core/signal_engine/provider/market_provider.dart';
+import '../../core/signal_engine/provider/signal_provider.dart';
 import '../provider/trend_provider.dart';
 import '../widgets/trend_widget.dart';
 

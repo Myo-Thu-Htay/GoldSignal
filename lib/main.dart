@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:gold_signal/core/service/backgroung_service.dart';
+import 'package:gold_signal/core/signal_engine/services/backgroung_service.dart';
 import 'core/error/global_error_handler.dart';
 import 'core/config/app_config.dart';
-import 'app.dart';
+import 'dashboard/app.dart';
 
 void main() async {
   runZonedGuarded(() async {

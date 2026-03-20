@@ -22,21 +22,6 @@ class SignalService {
     return lastClose;
   }
 
-  int calculateConfidence(MultiTimeFrameModel multiTf) {
-    int score = 0;
-    if (isBullish(multiTf.h1)) score += 4;
-    if (isBearish(multiTf.h1)) score -= 4;
-    if (isBullish(multiTf.m15)) score += 3;
-    if (isBearish(multiTf.m15)) score -= 3;
-    if (isBullish(multiTf.m5)) score += 2;
-    if (isBearish(multiTf.m5)) score -= 2;
-    if (rsiBullish(multiTf.m15)) score += 2;
-    if (rsiBearish(multiTf.m15)) score -= 2;
-    if (_volumeFilter.confirmBullish(multiTf.m5)) score += 1;
-    if (_volumeFilter.confirmBearish(multiTf.m5)) score -= 1;
-    return score;
-  }
-
   double calculateSMA(List<Candle> candles, int period) {
     if (candles.length < period) return 0.0;
     double sum = 0.0;
@@ -172,6 +157,23 @@ class SignalService {
         lastCandle.high - lastCandle.close > (lastCandle.close - lastCandle.open) * 2 &&
             lastCandle.close < prevCandle.close;
     return upperRejection;
+  }
+
+   int calculateConfidence(MultiTimeFrameModel multiTf) {
+    int score = 0;
+    if (isBullish(multiTf.h1)) score += 4;
+    if (isBearish(multiTf.h1)) score -= 4;
+    if (isBullish(multiTf.m15)) score += 3;
+    if (isBearish(multiTf.m15)) score -= 3;
+    if (isBullish(multiTf.m5)) score += 2;
+    if (isBearish(multiTf.m5)) score -= 2;
+    if (rsiBullish(multiTf.m15)) score += 2;
+    if (rsiBearish(multiTf.m15)) score -= 2;
+    if (isBuyRejection(multiTf.m5)) score += 1;
+    if (isSellRejection(multiTf.m5)) score -= 1;
+    if (_volumeFilter.confirmBullish(multiTf.m5)) score += 1;
+    if (_volumeFilter.confirmBearish(multiTf.m5)) score -= 1;
+    return score;
   }
 
   String generateSignal(MultiTimeFrameModel multiTf, int score) {

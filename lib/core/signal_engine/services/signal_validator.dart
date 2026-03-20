@@ -1,4 +1,4 @@
-import 'package:gold_signal/signal_engine/model/trade_signal.dart';
+import 'package:gold_signal/core/signal_engine/model/trade_signal.dart';
 
 class SignalValidator {
   //static const int expiryMinutes = 60; // Example expiry time for signals

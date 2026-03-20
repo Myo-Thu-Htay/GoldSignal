@@ -6,13 +6,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gold_signal/core/theme/app_theme.dart';
 import 'package:gold_signal/dashboard/provider/controller_provider.dart';
 import 'package:gold_signal/dashboard/provider/setting_provider.dart';
-import 'package:gold_signal/signal_engine/provider/signal_provider.dart';
-import 'package:gold_signal/signal_engine/provider/signal_validator_provider.dart';
-import 'core/routing/app_router.dart';
+import 'package:gold_signal/core/signal_engine/provider/signal_provider.dart';
+import 'package:gold_signal/core/signal_engine/provider/signal_validator_provider.dart';
+import '../core/routing/app_router.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'dashboard/provider/market_stream_provider.dart';
-import 'signal_engine/model/trade_signal.dart';
-import 'signal_engine/provider/market_provider.dart';
+import 'provider/market_stream_provider.dart';
+import '../core/signal_engine/model/trade_signal.dart';
+import '../core/signal_engine/provider/market_provider.dart';
 
 class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});

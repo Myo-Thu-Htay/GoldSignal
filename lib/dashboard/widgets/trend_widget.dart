@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
-import '../../../signal_engine/model/candle.dart';
-import '../../../signal_engine/services/signal_service.dart';
+import '../../core/signal_engine/model/candle.dart';
+import '../../core/signal_engine/services/signal_service.dart';
 import '../provider/controller_provider.dart';
 import '../service/controller_service.dart';
 

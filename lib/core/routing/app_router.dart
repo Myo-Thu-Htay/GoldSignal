@@ -6,7 +6,7 @@ import '../../dashboard/pages/portfolio_page.dart';
 import '../../dashboard/pages/setting_page.dart';
 import '../../dashboard/pages/add_trade_page.dart';
 import '../../dashboard/pages/signal_history_page.dart';
-import '../../splash_screen.dart';
+import '../../dashboard/splash_screen.dart';
 
 class AppRouter {
   static const String splash = '/splash';

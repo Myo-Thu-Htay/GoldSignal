@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import '../../core/constants/trading_constants.dart';
+import '../../constants/trading_constants.dart';
 import '../model/multi_timeframe_model.dart';
 import 'atr_service.dart';
 import 'signal_service.dart';

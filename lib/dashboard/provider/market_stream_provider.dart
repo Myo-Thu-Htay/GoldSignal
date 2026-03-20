@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../signal_engine/provider/market_provider.dart';
+import '../../core/signal_engine/provider/market_provider.dart';
 import '../service/candle_stream_service.dart';
 import 'controller_provider.dart';
 import 'trade_history_provider.dart';

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../signal_engine/model/candle.dart';
+import '../../core/signal_engine/model/candle.dart';
 
 class Controller {
   final ValueNotifier<double> livePrice = ValueNotifier(0);

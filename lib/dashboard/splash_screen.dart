@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gold_signal/core/routing/app_router.dart';
 import 'package:gold_signal/dashboard/provider/market_stream_provider.dart';
-import 'signal_engine/provider/market_provider.dart';
-import 'signal_engine/provider/signal_provider.dart';
+import '../core/signal_engine/provider/market_provider.dart';
+import '../core/signal_engine/provider/signal_provider.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
