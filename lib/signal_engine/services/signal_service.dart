@@ -190,15 +190,9 @@ class SignalService {
 
 
     if (h1Bull && pullBack && rsiBull && isBullishBreak && isBuyReject) {
-      return 'Strong Buy';
-    }
-    if (h1Bear && pullBack && rsiBear && !isBullishBreak && isSellReject) {
-      return 'Strong Sell';
-    }
-    if (h1Bull && rsiBull && isBuyReject && isBullishBreak) {
       return 'Buy';
     }
-    if (h1Bear && rsiBear && isSellReject && !isBullishBreak) {
+    if (h1Bear && pullBack && rsiBear && !isBullishBreak && isSellReject) {
       return 'Sell';
     }
     return 'Hold';
