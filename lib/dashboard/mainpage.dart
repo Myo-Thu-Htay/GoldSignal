@@ -13,16 +13,21 @@ class MainPage extends StatelessWidget {
             .navigateTo(AppRouter.dashboard); // Navigate to Dashboard
         break;
       case 1:
-        AppRouter.delegate.navigateTo(AppRouter.account); // Navigate to Account
+        AppRouter.delegate
+            .navigateTo(AppRouter.signalHistory); // Navigate to Signal History
         break;
       case 2:
-        AppRouter.delegate.navigateTo(AppRouter.addTrade);
+        AppRouter.delegate
+            .navigateTo(AppRouter.addTrade); // Navigate to Add Trade
         break;
       case 3:
         AppRouter.delegate
             .navigateTo(AppRouter.portfolio); // Navigate to Portfolio
         break;
       case 4:
+        AppRouter.delegate.navigateTo(AppRouter.account); // Navigate to Account
+        break;
+      case 5:
         AppRouter.delegate
             .navigateTo(AppRouter.settings); // Navigate to Settings
         break;
@@ -38,14 +43,14 @@ class MainPage extends StatelessWidget {
         onTap: _onItemTapped,
         type: BottomNavigationBarType.fixed,
         items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.show_chart), label: "Chart"),
           BottomNavigationBarItem(
-              icon: Icon(Icons.dashboard), label: "Dashboard"),
+              icon: Icon(Icons.notifications), label: "Signals"),
           BottomNavigationBarItem(
-              icon: Icon(Icons.account_balance_wallet), label: "Account"),
+              icon: Icon(Icons.add_card_outlined), label: "Trade"),
           BottomNavigationBarItem(
-              icon: Icon(Icons.add_circle_outline_outlined), label: "Add"),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.pie_chart), label: "Portfolio"),
+              icon: Icon(Icons.bar_chart_outlined), label: "Portfolio"),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Account"),
           BottomNavigationBarItem(
               icon: Icon(Icons.settings), label: "Settings"),
         ],

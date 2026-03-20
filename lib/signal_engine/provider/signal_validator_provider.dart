@@ -14,12 +14,13 @@ class SignalValidatorNotifier extends StateNotifier<List<TradeSignal>> {
     loadSignals();
   } // Initialize with an empty list of signals
 
-  static const _storageKey = 'trade_signals';
+  static const _storageKey = 'valid_signals';
 
-  void loadSignals() async {
+  Future<List<TradeSignal>> loadSignals() async {
     final prefs = await SharedPreferences.getInstance();
     final data = prefs.getStringList(_storageKey) ?? [];
     state = data.map((e) => TradeSignal.fromJson(jsonDecode(e))).toList();
+    return state;
   }
 
   Future<void> saveSignals() async {
@@ -30,6 +31,11 @@ class SignalValidatorNotifier extends StateNotifier<List<TradeSignal>> {
 
   Future<void> addSignal(TradeSignal signal) async {
     state = [...state, signal];
+    await saveSignals();
+  }
+
+  Future<void> removeSignal(TradeSignal signal) async {
+    state = state.where((s) => s.entry != signal.entry).toList();
     await saveSignals();
   }
 

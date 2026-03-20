@@ -1,6 +1,5 @@
 import 'dart:async';
-import 'dart:convert';
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,7 +8,6 @@ import 'package:gold_signal/dashboard/provider/controller_provider.dart';
 import 'package:gold_signal/dashboard/provider/setting_provider.dart';
 import 'package:gold_signal/signal_engine/provider/signal_provider.dart';
 import 'package:gold_signal/signal_engine/provider/signal_validator_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'core/routing/app_router.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'dashboard/provider/market_stream_provider.dart';
@@ -35,26 +33,37 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
       if (event != null && event['signal'] != null) {
         final signalData = event['signal'] as Map<String, dynamic>;
         final signal = TradeSignal.fromJson(signalData);
-        ref.read(signalProvider.notifier).state = signal;
         ref.read(signalValidatorProvider.notifier).addSignal(signal);
+        if (signal.status == SignalStatus.active) {
+          ref.read(signalProvider.notifier).updateSignal(signal);
+        }
+
+        if (kDebugMode) {
+          print("Received signal update: ${signal.toJson()}");
+        }
       }
     });
-    _loadInitialSignal();
+    // _loadInitialSignal();
     Future.microtask(() {
       ref.read(marketStreamProvider);
+      ref.read(signalProvider);
       ref.read(signalValidatorProvider);
     });
   }
 
-  Future<void> _loadInitialSignal() async {
-    final prefs = await SharedPreferences.getInstance();
-    final signalJson = prefs.getString('latest_signal');
-    if (signalJson != null) {
-      final signalMap = jsonDecode(signalJson) as Map<String, dynamic>;
-      final signal = TradeSignal.fromJson(signalMap);
-      ref.read(signalProvider.notifier).state = signal;
-    }
-  }
+  // Future<void> _loadInitialSignal() async {
+  //   final prefs = await SharedPreferences.getInstance();
+  //   final signalJson = prefs.getStringList('valid_signals');
+  //   if (signalJson != null) {
+  //     final signalMap = jsonDecode(signalJson.map((s) => s).first)
+  //         as Map<String, dynamic>;
+  //     final signal = TradeSignal.fromJson(signalMap);
+  //     ref.read(signalValidatorProvider.notifier).addSignal(signal);
+  //     if (signal.status == SignalStatus.active) {
+  //       ref.read(signalProvider.notifier).saveSignal(signal);
+  //     }
+  //   }
+  // }
 
   @override
   void dispose() {
@@ -72,6 +81,8 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
         ref.read(getBinanceCandles);
         ref.read(marketStreamProvider);
         ref.read(controllerProvider);
+        ref.read(signalProvider);
+        ref.read(signalValidatorProvider);
         break;
       case AppLifecycleState.paused:
         break;
@@ -90,6 +101,8 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
     ref.invalidate(getBinanceCandles);
     ref.invalidate(selectedTimeframeProvider);
     ref.invalidate(controllerProvider);
+    ref.invalidate(signalProvider);
+    ref.invalidate(signalValidatorProvider);
   }
 
   @override

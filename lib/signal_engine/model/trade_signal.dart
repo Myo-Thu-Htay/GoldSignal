@@ -6,7 +6,6 @@ enum SignalStatus {
   slHit,
   pending,
   expired,
-  invalid,
 }
 
 class TradeSignal {
@@ -16,6 +15,7 @@ class TradeSignal {
   final double stopLoss;
   final double takeProfit;
   final double lotSize;
+  final double rr;
   final int confidence;
   SignalStatus status;
   DateTime generatedAt;
@@ -26,6 +26,7 @@ class TradeSignal {
     required this.stopLoss,
     required this.takeProfit,
     required this.lotSize,
+    required this.rr,
     required this.confidence,
     this.status = SignalStatus.active,
     DateTime? generatedAt,
@@ -34,12 +35,13 @@ class TradeSignal {
     return TradeSignal(
       isBuy: json['isBuy'] as bool,
       entryZone: json['entryZone'] != null
-          ? EntryZone.fromJson(json['entryZone'] as Map<String, dynamic>) 
+          ? EntryZone.fromJson(json['entryZone'] as Map<String, dynamic>)
           : EntryZone(0, 0),
       entry: (json['entry'] as num).toDouble(),
       stopLoss: (json['stopLoss'] as num).toDouble(),
       takeProfit: (json['takeProfit'] as num).toDouble(),
       lotSize: (json['lotSize'] as num).toDouble(),
+      rr: (json['rr'] as num).toDouble(),
       confidence: json['confidence'] as int,
       status: SignalStatus.values.firstWhere(
         (e) => e.toString().split('.').last == json['status'],
@@ -59,6 +61,7 @@ class TradeSignal {
       'stopLoss': stopLoss,
       'takeProfit': takeProfit,
       'lotSize': lotSize,
+      'rr': rr,
       'confidence': confidence,
       'status': status.toString().split('.').last,
       'generatedAt': generatedAt.toIso8601String(),
@@ -73,6 +76,7 @@ class TradeSignal {
       stopLoss: stopLoss,
       takeProfit: takeProfit,
       lotSize: lotSize,
+      rr: rr,
       confidence: confidence,
       status: status ?? this.status,
       generatedAt: generatedAt,

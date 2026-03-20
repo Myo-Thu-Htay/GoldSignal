@@ -10,6 +10,7 @@ class AppStrings {
       'balance': 'Balance',
       'account': 'Account',
       'portfolio': 'Portfolio',
+      'accountSettings': 'Account Settings',
     },
     'my': {
       'settings': 'ဆက်တင်များ',
@@ -21,6 +22,7 @@ class AppStrings {
       'balance': 'လက်ကျန်',
       'account': 'အကောင့်',
       'portfolio': 'Portfolio',
+      'accountSettings': 'အကောင့်ဆက်တင်များ',
     },
   };
 

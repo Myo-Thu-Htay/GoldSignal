@@ -1,13 +1,15 @@
 import 'package:gold_signal/signal_engine/model/trade_signal.dart';
 
 class SignalValidator {
-  static const int expiryMinutes = 60; // Example expiry time for signals
+  //static const int expiryMinutes = 60; // Example expiry time for signals
   static TradeSignal validateSignal(TradeSignal signal, double currentPrice) {
-    
-    double maxMove = (signal.takeProfit - signal.entry).abs() * 0.5; // 50% of expected move
-    
+    double buyMaxMove =
+        (signal.takeProfit - signal.entry).abs() * 0.7; // 70% of expected move
+    double sellMaxMove =
+        (signal.entry - signal.takeProfit).abs() * 0.7; // 70% of expected move
     // Trigger entry
-    if (signal.status == SignalStatus.pending && signal.entryZone.contains(currentPrice)) {
+    if (signal.status == SignalStatus.pending &&
+        (signal.isBuy ? signal.entry <= currentPrice : signal.entry >= currentPrice)) {
       return signal.copyWith(status: SignalStatus.active);
     }
 
@@ -27,17 +29,18 @@ class SignalValidator {
         }
       }
     }
+    // if (DateTime.now().difference(signal.generatedAt).inMinutes >
+    //     expiryMinutes) {
+    //   signal = signal.copyWith(status: SignalStatus.expired);
+    // } // Expiry Validation
     //Missed Entry Validation
-    if (signal.isBuy && currentPrice > signal.entry + maxMove) {
-      return signal.copyWith(status: SignalStatus.invalid); // Missed buy entry
-    } 
-    if (!signal.isBuy && currentPrice < signal.entry - maxMove) { 
-      return signal.copyWith(status: SignalStatus.invalid); // Missed sell entry
+    if (signal.isBuy && currentPrice > signal.entry + buyMaxMove) {
+      return signal.copyWith(status: SignalStatus.expired); // Missed buy entry
     }
-     if (DateTime.now().difference(signal.generatedAt).inMinutes >
-          expiryMinutes) {
-        signal = signal.copyWith(status: SignalStatus.expired);
-      } // Expiry Validation
+    if (!signal.isBuy && currentPrice < signal.entry - sellMaxMove) {
+      return signal.copyWith(status: SignalStatus.expired); // Missed sell entry
+    }
+
     return signal;
   }
 }

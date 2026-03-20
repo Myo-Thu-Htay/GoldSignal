@@ -19,7 +19,7 @@ class DashboardPage extends ConsumerWidget {
         centerTitle: true,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(8.0),
+        padding: EdgeInsets.fromLTRB(8, 0, 8, 0),
         child: Column(
           children: [
             /// PRICE PANEL
@@ -39,8 +39,8 @@ class DashboardPage extends ConsumerWidget {
             /// The card itself will handle showing "HOLD SIGNAL" if entry == 0
             /// This way we only show the card when we have actual signal data to display
             /// If signalAsync is still loading or has an error, the card won't show at all
-            if (signal != null && signal.status == SignalStatus.active && signal.entry != 0) _signalPanel(signal),
-            const SizedBox(height: 10),
+            if (signal != null)
+              SizedBox(height: 266, child: _signalPanel(signal)),
           ],
         ),
       ),
@@ -103,7 +103,7 @@ class DashboardPage extends ConsumerWidget {
           ),
           const Spacer(),
           Text(
-            "Signal: ${(signal?.isBuy == true) ? 'BUY' : (signal?.isBuy == false) ? 'SELL' : 'HOLD'}",
+            "Signal: ${(signal?.status == SignalStatus.active && signal?.isBuy == true) ? 'BUY' : (signal?.status == SignalStatus.active && signal?.isBuy == false) ? 'SELL' : 'HOLD'}",
             overflow: TextOverflow.ellipsis,
             style: TextStyle(fontSize: 16, color: Colors.black),
           ),
@@ -136,9 +136,6 @@ class DashboardPage extends ConsumerWidget {
 /// SIGNAL
 Widget _signalPanel(TradeSignal signal) {
   final isBuy = signal.isBuy;
-  final risk = (signal.entry - signal.stopLoss).abs();
-  final reward = (signal.takeProfit - signal.entry).abs();
-  final rr = reward / risk;
   return Card(
     color: (isBuy && signal.entry != 0)
         ? Colors.green
@@ -151,14 +148,29 @@ Widget _signalPanel(TradeSignal signal) {
       child: Column(
         children: [
           Text(
-            isBuy ? "BUY SIGNAL" : "SELL SIGNAL",
+            signal.status == SignalStatus.active && signal.isBuy == true
+                ? "BUY SIGNAL"
+                : signal.status == SignalStatus.active && signal.isBuy == false
+                    ? "SELL SIGNAL"
+                    : "HOLD SIGNAL",
             style: const TextStyle(
-              fontSize: 22,
+              fontSize: 18,
               color: Colors.white,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 10),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 3),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Status:', style: const TextStyle(color: Colors.white)),
+                Text(signal.status.toString().split('.').last.toUpperCase(),
+                    style: const TextStyle(color: Colors.white)),
+              ],
+            ),
+          ),
           _row("Entry", signal.entry),
           _row("Stop Loss", signal.stopLoss),
           _row("Take Profit", signal.takeProfit),
@@ -169,23 +181,23 @@ Widget _signalPanel(TradeSignal signal) {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('RR:', style: const TextStyle(color: Colors.white)),
-                Text('1:${rr.toStringAsFixed(0)}',
+                Text('1:${signal.rr.toStringAsFixed(0)}',
                     style: const TextStyle(color: Colors.white)),
               ],
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 3),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Confidence', style: const TextStyle(color: Colors.white)),
-                Text(
-                    "${(signal.confidence.abs() / 20 * 100).clamp(0, 100).toStringAsFixed(0)} %",
-                    style: const TextStyle(color: Colors.white)),
-              ],
-            ),
-          ),
+          // Padding(
+          //   padding: const EdgeInsets.symmetric(vertical: 3),
+          //   child: Row(
+          //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          //     children: [
+          //       Text('Confidence', style: const TextStyle(color: Colors.white)),
+          //       Text(
+          //           "${(signal.confidence.abs() / 20 * 100).clamp(0, 100).toStringAsFixed(0)} %",
+          //           style: const TextStyle(color: Colors.white)),
+          //     ],
+          //   ),
+          // ),
         ],
       ),
     ),

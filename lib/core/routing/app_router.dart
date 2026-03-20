@@ -5,15 +5,17 @@ import '../../dashboard/pages/dashboard_page.dart';
 import '../../dashboard/pages/portfolio_page.dart';
 import '../../dashboard/pages/setting_page.dart';
 import '../../dashboard/pages/add_trade_page.dart';
+import '../../dashboard/pages/signal_history_page.dart';
 import '../../splash_screen.dart';
 
 class AppRouter {
   static const String splash = '/splash';
   static const String dashboard = '/';
-  static const String account = '/account';
+  static const String signalHistory = '/signalHistory';
   static const String portfolio = '/portfolio';
   static const String settings = '/settings';
   static const String addTrade = '/addTrade';
+  static const String account = '/account';
   static final delegate = _SimpleRouterDelegate();
   static final parser = _SimpleRouteParser();
 }
@@ -42,9 +44,9 @@ class _SimpleRouterDelegate extends RouterDelegate<Uri>
         pages.add(const MaterialPage(
             child: MainPage(selectedIndex: 0, child: DashboardPage())));
         break;
-      case AppRouter.account:
+      case AppRouter.signalHistory:
         pages.add(const MaterialPage(
-            child: MainPage(selectedIndex: 1, child: AccountPage())));
+            child: MainPage(selectedIndex: 1, child: SignalHistoryPage())));
         break;
       case AppRouter.addTrade:
         pages.add(const MaterialPage(
@@ -54,9 +56,13 @@ class _SimpleRouterDelegate extends RouterDelegate<Uri>
         pages.add(const MaterialPage(
             child: MainPage(selectedIndex: 3, child: PortfolioPage())));
         break;
+      case AppRouter.account:
+        pages.add(const MaterialPage(
+            child: MainPage(selectedIndex: 4, child: AccountPage())));
+        break;
       case AppRouter.settings:
         pages.add(const MaterialPage(
-            child: MainPage(selectedIndex: 4, child: SettingsPage())));
+            child: MainPage(selectedIndex: 5, child: SettingsPage())));
         break;
       default:
         pages.add(const MaterialPage(child: SplashScreen())); // Fallback

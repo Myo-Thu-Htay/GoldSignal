@@ -54,13 +54,18 @@ class SrService {
     for (final price in prices) {
       bool found = false;
 
-      for (int i = 0; i < zones.length; i++) {
-        if ((zones[i].price - price).abs() <= tolerance) {
-          zones[i] = SrServiceZone(
-            price: (zones[i].price + price) / 2,
-            touches: zones[i].touches + 1,
+      for (final zone in zones) {
+        if ((price >= zone.price - tolerance && price <= zone.price + tolerance)) {
+          // Update existing zone
+          final newMin = min(zone.price - tolerance, price);
+          final newMax = max(zone.price + tolerance, price);
+          final newCenter = (newMin + newMax) / 2;
+          zones.remove(zone);
+          zones.add(SrServiceZone(
+            price: newCenter,
+            touches: zone.touches + 1,
             isSupport: isSupport,
-          );
+          ));
           found = true;
           break;
         }
@@ -78,39 +83,34 @@ class SrService {
     return zones.where((z) => z.touches >= minTouches).toList();
   }
 
-  static EntryZone getNearestZone(double price, List<SrServiceZone> zones) {
+  static EntryZone getNearestZone(double price, List<SrServiceZone> zones,bool isBuy) {
+    //print('Calculating nearest zone: ${zones.map((z) => z.price).toList()}');
     if (zones.isEmpty) {
       return EntryZone(
-          price - 0.5, price + 0.5); // Default zone if no zones found
+          price - 50, price + 50); // Default zone if no zones found
     }
-    final supports =
-        zones.where((z) => z.isSupport && z.price < price).toList();
-    //print('Supports: ${supports.map((s) => s.price).toList()}');
-    final resistances =
-        zones.where((z) => !z.isSupport && z.price > price).toList();
-    //print('Resistances: ${resistances.map((r) => r.price).toList()}');
-    if (supports.isEmpty && resistances.isEmpty) {
-      return EntryZone(
-          price - 0.5, price + 0.5); // Default zone if no zones found
-    } else if (supports.isEmpty) {
-      final nearestResistance = resistances.reduce(
-          (a, b) => (price - a.price).abs() < (price - b.price).abs() ? a : b);
-      return EntryZone(
-          nearestResistance.price - 0.5, nearestResistance.price + 0.5);
-    } else if (resistances.isEmpty) {
-      final nearestSupport = supports.reduce(
-          (a, b) => (price - a.price).abs() < (price - b.price).abs() ? a : b);
+    if(isBuy){
+      final supports = zones
+          .where((z) => z.isSupport && z.price <= price).toList();
+      if(supports.isEmpty){
+        return EntryZone(
+          price - 50, price + 50); // Default zone if no supports found
+      }
+      final nearestSupport = supports.reduce((a, b) =>
+          (price - a.price).abs() < (price - b.price).abs() ? a : b);
+          
       return EntryZone(nearestSupport.price - 0.5, nearestSupport.price + 0.5);
     } else {
-      final nearestSupport = supports.reduce(
-          (a, b) => (price - a.price).abs() < (price - b.price).abs() ? a : b);
-
-      final nearestResistance = resistances.reduce(
-          (a, b) => (price - a.price).abs() < (price - b.price).abs() ? a : b);
-
-      final minPrice = min(nearestSupport.price, nearestResistance.price);
-      final maxPrice = max(nearestSupport.price, nearestResistance.price);
-      return EntryZone(minPrice, maxPrice);
+      final resistances = zones
+          .where((z) => !z.isSupport && z.price >= price)
+          .toList();
+      if(resistances.isEmpty){
+        return EntryZone(
+          price - 50, price + 50); // Default zone if no resistances found
+      }
+      final nearestResistance = resistances.reduce((a, b) =>
+          (price - a.price).abs() < (price - b.price).abs() ? a : b);
+      return EntryZone(nearestResistance.price - 0.5, nearestResistance.price + 0.5);
     }
   }
 }

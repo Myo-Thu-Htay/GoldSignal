@@ -51,26 +51,25 @@ void onStart(ServiceInstance service) async {
       lastCandleTime = latestTime;
       final signal =
           await engine.evaluate(candles, accountBalance, riskPercent);
-      if (kDebugMode) {
-        print(
-            'Signal generated with ${signal.status.toString().split('.').last.toUpperCase()} status');
-      }
       final validSignal =
           SignalValidator.validateSignal(signal, candles.m5.last.close);
-      if (kDebugMode) {
-        print(
-            'Signal generated with status ${validSignal.status.toString().split('.').last.toUpperCase()}');
+      if (validSignal.status != SignalStatus.expired) {
+        if (kDebugMode) {
+          print('Pending signal detected, waiting for confirmation...');
+        }
+        await prefs
+            .setStringList('valid_signals', [jsonEncode(validSignal.toJson())]);
       }
       if (validSignal.status == SignalStatus.active) {
         service.invoke('update_signal', {
           'signal': validSignal.toJson(),
         }); // Send signal to the main app
         await prefs.setString(
-            'latest_signal',
+            'active_signals',
             jsonEncode(validSignal
                 .toJson())); // Store or update the signal in local storage
         final newId =
-            "${validSignal.isBuy}_${validSignal.entryZone.min.round()}_${validSignal.entryZone.max.round()}_${validSignal.stopLoss.round()}_${validSignal.takeProfit.round()}";
+            "${validSignal.isBuy}_${validSignal.stopLoss.round()}_${validSignal.takeProfit.round()}";
         final exits = prefs.getString('signal_ids');
         if (newId != exits) {
           bool isOn = prefs.getBool('notificationsEnabled') ?? true;
@@ -99,11 +98,11 @@ void onStart(ServiceInstance service) async {
                 newStatus); // Update the stored signal status
           }
         }
-        await prefs.remove('latest_signal'); // Remove expired/invalid signal
+        await prefs.remove('active_signals'); // Remove expired/invalid signal
       }
       if (kDebugMode) {
         print(
-            'Signal status: ${validSignal.status.toString().split('.').last.toUpperCase()} ${validSignal.isBuy ? 'BUY' : 'SELL'} at ${validSignal.entry.toStringAsFixed(2)} with confidence ${(validSignal.confidence.abs() / 20 * 100).clamp(0, 100).toStringAsFixed(0)}%');
+            'Signal status: ${validSignal.status.toString().split('.').last.toUpperCase()} ${validSignal.isBuy ? 'BUY' : 'SELL'} at Zone: ${validSignal.entryZone.max.toStringAsFixed(2)} - ${validSignal.entryZone.min.toStringAsFixed(2)} Entry: ${validSignal.entry.toStringAsFixed(2)}  SL: ${validSignal.stopLoss.toStringAsFixed(2)} TP: ${validSignal.takeProfit.toStringAsFixed(2)} Lot: ${validSignal.lotSize.toStringAsFixed(2)} with confidence ${(validSignal.confidence.abs() / 20 * 100).clamp(0, 100).toStringAsFixed(0)}%');
       }
     } catch (e, stackTrace) {
       if (kDebugMode) {
