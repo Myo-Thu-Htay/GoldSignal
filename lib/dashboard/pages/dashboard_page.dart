@@ -13,6 +13,7 @@ class DashboardPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final signal = ref.watch(signalProvider);
+    final candlesAsync = ref.watch(binanceCandlesProvider);
     return Scaffold(
       appBar: AppBar(
         title: const Text("Gold Signal"),
@@ -30,7 +31,11 @@ class DashboardPage extends ConsumerWidget {
 
             /// CHART
             Expanded(
-              child: _chartPanel(ref),
+              child: candlesAsync.when(
+                data: (candles) => TrendWidget(trend: candles),
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, st) => const Center(child: Text("Error loading chart data")),
+              ),
             ),
 
             /// SIGNAL CARD
@@ -112,108 +117,89 @@ class DashboardPage extends ConsumerWidget {
     );
   }
 
-  /// CHART
-  Widget _chartPanel(WidgetRef ref) {
-    final candlesAsync = ref.watch(binanceCandlesProvider);
-    return candlesAsync.when(
-      data: (candles) {
-        return Container(
-          margin: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey),
-          ),
-          child: TrendWidget(
-            trend: candles,
-          ),
-        );
-      },
-      loading: () => const Text("Loading..."),
-      error: (e, st) => const Text("Error"),
+  /// SIGNAL
+  Widget _signalPanel(TradeSignal signal) {
+    final isBuy = signal.isBuy;
+    return Card(
+      color: (isBuy && signal.entry != 0)
+          ? Colors.green
+          : (!isBuy && signal.entry != 0)
+              ? Colors.red
+              : Colors.grey,
+      margin: const EdgeInsets.all(12),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Text(
+              signal.status == SignalStatus.active && signal.isBuy == true
+                  ? "BUY SIGNAL"
+                  : signal.status == SignalStatus.active &&
+                          signal.isBuy == false
+                      ? "SELL SIGNAL"
+                      : "HOLD SIGNAL",
+              style: const TextStyle(
+                fontSize: 18,
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 3),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Status:', style: const TextStyle(color: Colors.white)),
+                  Text(signal.status.toString().split('.').last.toUpperCase(),
+                      style: const TextStyle(color: Colors.white)),
+                ],
+              ),
+            ),
+            _row("Entry", signal.entry),
+            _row("Stop Loss", signal.stopLoss),
+            _row("Take Profit", signal.takeProfit),
+            _row("Lot Size", signal.lotSize),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 3),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('RR:', style: const TextStyle(color: Colors.white)),
+                  Text('1:${signal.rr.toStringAsFixed(0)}',
+                      style: const TextStyle(color: Colors.white)),
+                ],
+              ),
+            ),
+            // Padding(
+            //   padding: const EdgeInsets.symmetric(vertical: 3),
+            //   child: Row(
+            //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            //     children: [
+            //       Text('Confidence', style: const TextStyle(color: Colors.white)),
+            //       Text(
+            //           "${(signal.confidence.abs() / 20 * 100).clamp(0, 100).toStringAsFixed(0)} %",
+            //           style: const TextStyle(color: Colors.white)),
+            //     ],
+            //   ),
+            // ),
+          ],
+        ),
+      ),
     );
   }
-}
 
-/// SIGNAL
-Widget _signalPanel(TradeSignal signal) {
-  final isBuy = signal.isBuy;
-  return Card(
-    color: (isBuy && signal.entry != 0)
-        ? Colors.green
-        : (!isBuy && signal.entry != 0)
-            ? Colors.red
-            : Colors.grey,
-    margin: const EdgeInsets.all(12),
-    child: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
+  Widget _row(String label, double value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            signal.status == SignalStatus.active && signal.isBuy == true
-                ? "BUY SIGNAL"
-                : signal.status == SignalStatus.active && signal.isBuy == false
-                    ? "SELL SIGNAL"
-                    : "HOLD SIGNAL",
-            style: const TextStyle(
-              fontSize: 18,
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 3),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Status:', style: const TextStyle(color: Colors.white)),
-                Text(signal.status.toString().split('.').last.toUpperCase(),
-                    style: const TextStyle(color: Colors.white)),
-              ],
-            ),
-          ),
-          _row("Entry", signal.entry),
-          _row("Stop Loss", signal.stopLoss),
-          _row("Take Profit", signal.takeProfit),
-          _row("Lot Size", signal.lotSize),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 3),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('RR:', style: const TextStyle(color: Colors.white)),
-                Text('1:${signal.rr.toStringAsFixed(0)}',
-                    style: const TextStyle(color: Colors.white)),
-              ],
-            ),
-          ),
-          // Padding(
-          //   padding: const EdgeInsets.symmetric(vertical: 3),
-          //   child: Row(
-          //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          //     children: [
-          //       Text('Confidence', style: const TextStyle(color: Colors.white)),
-          //       Text(
-          //           "${(signal.confidence.abs() / 20 * 100).clamp(0, 100).toStringAsFixed(0)} %",
-          //           style: const TextStyle(color: Colors.white)),
-          //     ],
-          //   ),
-          // ),
+          Text(label, style: const TextStyle(color: Colors.white)),
+          Text(value.toStringAsFixed(2),
+              style: const TextStyle(color: Colors.white)),
         ],
       ),
-    ),
-  );
-}
-
-Widget _row(String label, double value) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 3),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: const TextStyle(color: Colors.white)),
-        Text(value.toStringAsFixed(2),
-            style: const TextStyle(color: Colors.white)),
-      ],
-    ),
-  );
+    );
+  }
 }

@@ -23,13 +23,13 @@ class AccountState {
 
 class AccountNotifier extends StateNotifier<AccountState> {
   AccountNotifier()
-      : super(const AccountState(initialBalance: 10000, balance: 10000, riskPercent: 1)) {
+      : super(const AccountState(initialBalance: 0.0, balance: 0.0, riskPercent: 1)) {
     _loadFromPrefs();
   }
 
   Future<void> _loadFromPrefs() async {
     final prefs = await SharedPreferences.getInstance();
-    final initialBalance = prefs.getDouble('account_initial_balance') ?? 10000;
+    final initialBalance = prefs.getDouble('account_initial_balance') ?? 0.0;
     final bal = prefs.getDouble('account_balance') ?? initialBalance;
     final risk = prefs.getDouble('account_risk') ?? 1;
     state = AccountState(initialBalance: initialBalance, balance: bal, riskPercent: risk);

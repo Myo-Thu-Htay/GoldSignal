@@ -5,7 +5,7 @@ import 'package:gold_signal/dashboard/provider/controller_provider.dart';
 import 'package:gold_signal/dashboard/service/trade_calculator.dart';
 import '../../core/signal_engine/model/candle.dart';
 import '../provider/account_provider.dart';
-import '../provider/equity_curve_provider.dart';
+import '../provider/equity_chart_provider.dart';
 import '../../core/signal_engine/provider/market_provider.dart';
 import '../provider/setting_provider.dart';
 import '../provider/trade_history_provider.dart';
@@ -98,7 +98,7 @@ class _AddTradeState extends ConsumerState<AddTrade> {
         );
     if (!isOpen) {
       ref.watch(accountProvider.notifier).update(pnlPreview.value);
-      ref.invalidate(equityCurveProvider);
+      ref.invalidate(equityChartProvider);
     }
     // ignore: use_build_context_synchronously
     ScaffoldMessenger.of(context).showSnackBar(
@@ -145,7 +145,7 @@ class _AddTradeState extends ConsumerState<AddTrade> {
               icon: const Icon(Icons.delete),
               onPressed: () {
                 ref.read(tradeHistoryProvider.notifier).clearTrades();
-                ref.invalidate(equityCurveProvider);
+                ref.invalidate(equityChartProvider);
               },
             )
           ],

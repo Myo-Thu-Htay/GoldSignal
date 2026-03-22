@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../provider/equity_curve_provider.dart';
+import '../provider/equity_chart_provider.dart';
 import '../provider/controller_provider.dart';
 import '../provider/trade_history_provider.dart';
 import '../widgets/equity_curve_widget.dart';
@@ -12,7 +12,6 @@ class PortfolioPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final equityCurve = ref.watch(equityCurveProvider);
     final trades = ref.watch(tradeHistoryProvider);
     final openTrades = trades.where((t) => t.isOpen).toList();
     final controller = ref.watch(controllerProvider);
@@ -26,7 +25,7 @@ class PortfolioPage extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              ref.invalidate(equityCurveProvider);
+              ref.invalidate(equityChartProvider);
             },
           )
         ],
@@ -43,8 +42,7 @@ class PortfolioPage extends ConsumerWidget {
             child: Card(
               color: Colors.blueGrey.shade100,
               margin: const EdgeInsets.all(16),
-              child: EquityCurveWidget(
-                  equityCurve: equityCurve), // Draw equity curve
+              child: EquityCurveWidget(), // Draw equity curve
             ),
           ),
           openTrades.isEmpty

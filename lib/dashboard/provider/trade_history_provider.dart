@@ -131,6 +131,7 @@ class TradeHistoryNotifier extends StateNotifier<List<Trade>> {
     final prefs = await SharedPreferences.getInstance();
     final notificationsEnabled = prefs.getBool('notificationsEnabled') ?? true;
     bool needUpdate = false;
+    double totalClosedPnL = 0.0;
     state = state.map((trade) {
       if (!trade.isOpen) return trade;
       bool hitTP = false;
@@ -154,6 +155,7 @@ class TradeHistoryNotifier extends StateNotifier<List<Trade>> {
       final pnl = trade.isBuy
           ? (exitPrice - trade.entry) * trade.lotSize * 100
           : (trade.entry - exitPrice) * trade.lotSize * 100;
+      totalClosedPnL += pnl;
       if (notificationsEnabled) {
         NotificationService.showNotification(
           title: 'Trade Closed: ${hitTP ? "TP Hit" : "SL Hit"}',
@@ -163,10 +165,7 @@ class TradeHistoryNotifier extends StateNotifier<List<Trade>> {
       }
       if (hitTP || hitSL) {
         needUpdate = true;
-        final balance = prefs.getDouble('account_balance')!;
-        final newBalance = balance + pnl;
-        prefs.setDouble('account_balance', newBalance);
-      }
+        }
       return trade.copyWith(
         exitPrice: exitPrice,
         exitTime: DateTime.now(),
@@ -175,7 +174,10 @@ class TradeHistoryNotifier extends StateNotifier<List<Trade>> {
         isOpen: false,
       );
     }).toList();
-    if (needUpdate) {
+    if(totalClosedPnL != 0.0 && needUpdate) {
+      final currBalance = prefs.getDouble('account_balance') ?? 0.0;
+      final newBalance = currBalance + totalClosedPnL;
+      await prefs.setDouble('account_balance', newBalance);
       await _saveTrades();
     }
   }
